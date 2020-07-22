@@ -1,0 +1,6 @@
+{
+    "watch": ["src"],
+    "ext": ".ts,.js",
+    "ignore": ["__tests__"],
+    "exec": "node --inspect -r ts-node/register ./src/server.ts"
+  }

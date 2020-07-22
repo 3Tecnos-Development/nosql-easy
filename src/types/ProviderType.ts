@@ -1,0 +1,1 @@
+export type ProviderType = undefined | 'Firestore' | 'Firebase';
