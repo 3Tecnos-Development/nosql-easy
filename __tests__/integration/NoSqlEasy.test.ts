@@ -1,3 +1,4 @@
+import { DialectType } from './../../src/types/DialectType';
 import { NoSqlEasyConfig } from './../../src/Config';
 import { NoSqlEasy } from './../../src/index';
 import dotenv from "dotenv";
@@ -14,7 +15,7 @@ interface IFake {
     isDad?:boolean
 }
 
-NoSqlEasyConfig.setProvider("Firestore");
+NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
 
 var dynamicId:string;
 
@@ -91,7 +92,11 @@ describe('NoSqlEasy', () =>{
     it('Testando o método remove', async () => {
         const noSqlEasy = new NoSqlEasy();
         await noSqlEasy.remove('fakes', dynamicId);
-        const exists = await noSqlEasy.exists('fakes', dynamicId);
-        expect(exists).toBe(false);
+        await noSqlEasy.remove('fakes', '123456');
+        const [existsOne, existsSecond ] = await Promise.all([
+                            noSqlEasy.exists('fakes', dynamicId), 
+                            noSqlEasy.exists('fakes', '123456')
+                        ]);
+        expect(existsOne && existsSecond).toBe(false);
     })
 });

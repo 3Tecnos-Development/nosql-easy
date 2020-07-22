@@ -3,7 +3,7 @@ import { IRepository } from "./interfaces/IRepository";
 import { IProvider } from "./interfaces/IProvider";
 import { Options } from "./types/Options";
 import { MapEnv } from "map-env-node";
-import { FirestoreRepository } from "./providers/Firestore/FirestoreRepository";
+import { FirestoreRepository } from "./dialects/Firestore/FirestoreRepository";
 import { NoSqlEasyConfig } from "./Config";
 import { WhereFilterOp } from "./types/Where";
 import { OrderByDirection } from "./types/OrderBy";
@@ -24,7 +24,7 @@ export class NoSqlEasy implements IRepository
 
     private getRepository(): IRepository
     {
-        let filter = this.providers.filter(p => p.name === NoSqlEasyConfig.getProviderName());
+        let filter = this.providers.filter(p => p.name === NoSqlEasyConfig.getDialectName());
         if(filter.length > 0)
         {
             return filter[0].repository;

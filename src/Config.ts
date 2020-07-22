@@ -1,17 +1,17 @@
-import { ProviderType } from "./types/ProviderType";
+import { DialectType } from "./types/DialectType";
 
 export class Config {
-    private providerType:ProviderType;
+    private dialectType:DialectType;
 
-    setProvider(providerType:ProviderType){
-        this.providerType = providerType;
+    setDialect(providerType:DialectType){
+        this.dialectType = providerType;
     }
 
-    getProviderName():string {
-        if(!this.providerType){
+    getDialectName():string {
+        if(!this.dialectType){
             throw new Error("É necessário definir qual será o provedor de Dados.");
         }
-        return this.providerType.toString();
+        return this.dialectType.toString();
     }
 }
 
