@@ -1,1 +1,1 @@
-export type DialectType = undefined | 'Firestore' | 'Firebase';
+export type DialectType = undefined | "Firestore" | "Firebase";

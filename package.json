@@ -1,25 +1,33 @@
 {
   "name": "nosql-easy",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "This library aims to facilitate access to a non-relational database",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "DB_DIALECT=Firestore jest --detectOpenHandles",
-    "build": "tsc"
+    "test": "jest --detectOpenHandles",
+    "build": "tsc",
+    "lint": "eslint --ext .ts,.js src",
+    "lint:fix": "eslint --fix . --max-warnings=0 --ext .ts,.js src"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/3Tecnos-Development/nosql-easy.git"
   },
   "author": "Lindsay Cerqueira",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/3Tecnos-Development/nosql-easy/issues"
   },
   "homepage": "https://github.com/3Tecnos-Development/nosql-easy#readme",
   "devDependencies": {
     "@types/jest": "^26.0.5",
+    "@typescript-eslint/eslint-plugin": "^4.1.0",
+    "@typescript-eslint/parser": "^4.1.0",
+    "eslint": "^7.8.1",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.22.0",
     "jest": "^26.1.0",
     "jest-cli": "^26.1.0",
     "ts-jest": "^26.1.3",
@@ -31,6 +39,6 @@
     "dotenv": "^8.2.0",
     "firebase": "^7.16.1",
     "firebase-admin": "^9.0.0",
-    "map-env-node": "^0.1.5"
+    "map-env-node": "^0.1.7"
   }
 }
