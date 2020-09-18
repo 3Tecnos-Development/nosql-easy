@@ -1,5 +1,10 @@
 /__tests__
 __tests__
+/src
+src
+/node_modules
+node_modules
+__tests__
 /.github
 .github
 .env
