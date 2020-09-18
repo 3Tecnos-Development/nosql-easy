@@ -10,7 +10,7 @@ import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces/IFirestoreCredential";
 import { IRepository } from "../../interfaces/IRepository";
-import { Options } from "../../types/Options";
+import { Options } from "../../types";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
@@ -81,7 +81,7 @@ export class FirestoreRepository implements IRepository {
       if (options.whereCollection) {
         options.whereCollection.forEach((where) => {
           query = query.where(
-            where.fieldPath as string,
+            (where.fieldPath as unknown) as string,
             where.operator.toString() as FirebaseFirestore.WhereFilterOp,
             where.value,
           );
@@ -90,7 +90,10 @@ export class FirestoreRepository implements IRepository {
 
       if (options.orderByCollection) {
         options.orderByCollection.forEach((orderBy) => {
-          query = query.orderBy(orderBy.fieldPath as string, orderBy.direction as FirebaseFirestore.OrderByDirection);
+          query = query.orderBy(
+            (orderBy.fieldPath as unknown) as string,
+            orderBy.direction as FirebaseFirestore.OrderByDirection,
+          );
         });
       }
 

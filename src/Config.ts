@@ -1,6 +1,6 @@
-import { DialectType } from "./types/DialectType";
+import { DialectType } from "./types";
 
-export class Config {
+class Config {
   private dialectType: DialectType;
 
   setDialect(providerType: DialectType) {
@@ -8,6 +8,8 @@ export class Config {
   }
 
   getDialectName(): string {
+    console.log("getDialectName ->", this.dialectType);
+
     if (!this.dialectType) {
       throw new Error("It is necessary to define the data provider.");
     }
