@@ -2,10 +2,18 @@
 import { IRepository } from "./interfaces/IRepository";
 import { IProvider } from "./interfaces/IProvider";
 import { Options } from "./types/Options";
+import { OrderBy, OrderByDirection, Where, WhereFilterOp, DialectType } from "./types";
+import { IFirestoreCredential } from "./dialects/Firestore/interfaces/IFirestoreCredential";
 import { FirestoreRepository } from "./dialects/Firestore/FirestoreRepository";
 import { NoSqlEasyConfig } from "./Config";
-import { WhereFilterOp } from "./types/Where";
-import { OrderByDirection } from "./types/OrderBy";
+
+export { IProvider, IRepository };
+
+export { NoSqlEasyConfig };
+
+export { DialectType, Options, OrderByDirection, OrderBy, WhereFilterOp, Where };
+
+export { IFirestoreCredential, FirestoreRepository };
 
 export class NoSqlEasy implements IRepository {
   providers = Array<IProvider>();

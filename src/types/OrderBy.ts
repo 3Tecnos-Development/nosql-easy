@@ -1,9 +1,6 @@
-
 export type OrderByDirection = "desc" | "asc";
 
-interface IOrderBy<K>{
+export type OrderBy<K> = {
   fieldPath: K;
   direction: OrderByDirection;
-}
-
-export type OrderBy<T> = IOrderBy<keyof T>;
+};
