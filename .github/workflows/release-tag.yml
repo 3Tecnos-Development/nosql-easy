@@ -27,7 +27,7 @@ jobs:
         working-directory: src
         run: npm ci
       - name: Build
-        run: npm build
+        run: npm run build
       # - name: Test
       #working-directory: src
       #run: npm test
