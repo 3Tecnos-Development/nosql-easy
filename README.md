@@ -72,7 +72,7 @@ export class BaseService {
 | `updateField<T>`       | Updates fields in the document referred to by this DocumentReference in a fieldPath.                                           | `collection: string, id: string, fieldName: keyof T, value: any`                                                                  | `Promise`         |
 | `remove`               | Deletes the document referred to by this DocumentReference.                                                                    | `collection: string, id: string`                                                                                                  | `Promise`         |
 | `exists`               | True if the document exists.                                                                                                   | `collection: string, id: string`                                                                                                  | `Promise`         |
-| `getSizeCollection`    | Return size of the collection.                                                                                                 | `collection: string, options?: Options<T>`                                                                                        | `Promise<number>` |
+| `getSizeCollection`    | Return the size of the collection.                                                                                             | `collection: string, options?: Options<T>`                                                                                        | `Promise<number>` |
 
 ## Types
 
