@@ -22,4 +22,5 @@ export interface IRepository {
   updateField<T>(collection: string, id: string, fieldName: keyof T, value: any): Promise<void>;
   remove(collection: string, id: string): Promise<void>;
   exists(collection: string, id: string): Promise<boolean>;
+  getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number>;
 }

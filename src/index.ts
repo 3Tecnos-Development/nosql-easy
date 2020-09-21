@@ -84,4 +84,8 @@ export class NoSqlEasy implements IRepository {
   async exists(collection: string, id: string): Promise<boolean> {
     return this.repository.exists(collection, id);
   }
+
+  async getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number> {
+    return this.repository.getSizeCollection<T>(collection, options);
+  }
 }

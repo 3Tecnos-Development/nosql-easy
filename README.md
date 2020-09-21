@@ -28,9 +28,6 @@ npm install nosql-easy
 .env (file)
 
 ```
-# Default Dialect
-DB_DIALECT=Firestore
-
 #Firebase
 FIRESTORE_CREDENTIAL={"credential":{"projectId":"your_project","clientEmail":"your_email","privateKey":"your_privateKey"}, "databaseURL":"your_url"}
 
@@ -41,7 +38,9 @@ AWS_CREDENTIAL={"accessKeyId":"your_accessKeyId","secretAccessKey":"your_secretA
 #### TypeScript
 
 ```typescript
-import { NoSqlEasy } from "nosql-easy";
+import { NoSqlEasy, NoSqlEasyConfig } from "nosql-easy";
+
+NoSqlEasyConfig.setDialect("Firestore");
 
 export class BaseService {
   public repository: NoSqlEasy;
@@ -60,19 +59,20 @@ export class BaseService {
 
 ### Functionality
 
-| Function               | Description                                                                                                                    | Param                                                                                                                             | Return         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| `WhereFilterOp`        | Add a new document to this collection with the specified data, assigning it a document ID automatically                        | `collection: string, data: T `                                                                                                    | `Promise<T>`   |
-| `insertWithId<T>`      | Add a new document to this collection with the specified data, assigning it a document ID automatically, inserting a custom id | `collection: string, data: T `                                                                                                    | `Promise<T>`   |
-| `insertElementInArray` | Add a new document to this collection with the specified data, and update fields into document referred                        | `collection: string, id: string, arrayFieldName: string, Value: any`                                                              | `Promise`      |
-| `getCollection`        | Get data collection that refers to the specified collection path.                                                              | `collection: string, options?: Options<T> `                                                                                       | `Promise<T[]>` |
-| `getById<T>`           | Get data from the collection by id.                                                                                            | `collection: string, id: string `                                                                                                 | `Promise<T>`   |
-| `getByValue<T>`        | Get data collection filtered by value.                                                                                         | `collection: string, fieldPath: string, value: any, whereFilter?: WhereFilterOp `                                                 | `Promise<T[]>` |
-| `getByValueOrdered<T>` | Get data collection ordinated and filtered by value.                                                                           | `collection: string, fieldPath: string, whereFilter: WhereFilterOp, value: any, fieldOrder: string, direction?: OrderByDirection` | `Promise<T[]>` |
-| `update<T>`            | Updates fields in the document referred to by this DocumentReference.                                                          | `collection: string, data: T`                                                                                                     | `Promise`      |
-| `updateField<T>`       | Updates fields in the document referred to by this DocumentReference in a fieldPath.                                           | `collection: string, id: string, fieldName: keyof T, value: any`                                                                  | `Promise`      |
-| `remove`               | Deletes the document referred to by this DocumentReference.                                                                    | `collection: string, id: string`                                                                                                  | `Promise`      |
-| `exists`               | True if the document exists.                                                                                                   | `collection: string, id: string`                                                                                                  | `Promise`      |
+| Function               | Description                                                                                                                    | Param                                                                                                                             | Return            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `WhereFilterOp`        | Add a new document to this collection with the specified data, assigning it a document ID automatically                        | `collection: string, data: T `                                                                                                    | `Promise<T>`      |
+| `insertWithId<T>`      | Add a new document to this collection with the specified data, assigning it a document ID automatically, inserting a custom id | `collection: string, data: T `                                                                                                    | `Promise<T>`      |
+| `insertElementInArray` | Add a new document to this collection with the specified data, and update fields into document referred                        | `collection: string, id: string, arrayFieldName: string, Value: any`                                                              | `Promise`         |
+| `getCollection`        | Get data collection that refers to the specified collection path.                                                              | `collection: string, options?: Options<T> `                                                                                       | `Promise<T[]>`    |
+| `getById<T>`           | Get data from the collection by id.                                                                                            | `collection: string, id: string `                                                                                                 | `Promise<T>`      |
+| `getByValue<T>`        | Get data collection filtered by value.                                                                                         | `collection: string, fieldPath: string, value: any, whereFilter?: WhereFilterOp `                                                 | `Promise<T[]>`    |
+| `getByValueOrdered<T>` | Get data collection ordinated and filtered by value.                                                                           | `collection: string, fieldPath: string, whereFilter: WhereFilterOp, value: any, fieldOrder: string, direction?: OrderByDirection` | `Promise<T[]>`    |
+| `update<T>`            | Updates fields in the document referred to by this DocumentReference.                                                          | `collection: string, data: T`                                                                                                     | `Promise`         |
+| `updateField<T>`       | Updates fields in the document referred to by this DocumentReference in a fieldPath.                                           | `collection: string, id: string, fieldName: keyof T, value: any`                                                                  | `Promise`         |
+| `remove`               | Deletes the document referred to by this DocumentReference.                                                                    | `collection: string, id: string`                                                                                                  | `Promise`         |
+| `exists`               | True if the document exists.                                                                                                   | `collection: string, id: string`                                                                                                  | `Promise`         |
+| `getSizeCollection`    | Return the size of the collection.                                                                                             | `collection: string, options?: Options<T>`                                                                                        | `Promise<number>` |
 
 ## Types
 
