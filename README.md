@@ -28,9 +28,6 @@ npm install nosql-easy
 .env (file)
 
 ```
-# Default Dialect
-DB_DIALECT=Firestore
-
 #Firebase
 FIRESTORE_CREDENTIAL={"credential":{"projectId":"your_project","clientEmail":"your_email","privateKey":"your_privateKey"}, "databaseURL":"your_url"}
 
@@ -41,7 +38,9 @@ AWS_CREDENTIAL={"accessKeyId":"your_accessKeyId","secretAccessKey":"your_secretA
 #### TypeScript
 
 ```typescript
-import { NoSqlEasy } from "nosql-easy";
+import { NoSqlEasy, NoSqlEasyConfig } from "nosql-easy";
+
+NoSqlEasyConfig.setDialect("Firestore");
 
 export class BaseService {
   public repository: NoSqlEasy;
@@ -73,6 +72,7 @@ export class BaseService {
 | `updateField<T>`       | Updates fields in the document referred to by this DocumentReference in a fieldPath.                                           | `collection: string, id: string, fieldName: keyof T, value: any`                                                                  | `Promise`      |
 | `remove`               | Deletes the document referred to by this DocumentReference.                                                                    | `collection: string, id: string`                                                                                                  | `Promise`      |
 | `exists`               | True if the document exists.                                                                                                   | `collection: string, id: string`                                                                                                  | `Promise`      |
+| `getSizeCollection`               | Return size of collection.                                                                                                   | `collection: string, options?: Options<T>`                                                                                                  | `Promise<number>`      |
 
 ## Types
 
@@ -80,3 +80,4 @@ export class BaseService {
 | ------------------ | ------------------------------------------------------------------------- |
 | `WhereFilterOp`    | `<`, `<=`, `==`, `>=`, `">`, `array-contains`, `in`, `array-contains-any` |
 | `OrderByDirection` | `desc`, `asc`                                                             |
+
