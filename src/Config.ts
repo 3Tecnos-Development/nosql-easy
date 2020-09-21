@@ -8,8 +8,6 @@ class Config {
   }
 
   getDialectName(): string {
-    console.log("getDialectName ->", this.dialectType);
-
     if (!this.dialectType) {
       throw new Error("It is necessary to define the data provider.");
     }
