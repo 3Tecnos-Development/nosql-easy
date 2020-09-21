@@ -188,16 +188,14 @@ export class FirestoreRepository implements IRepository {
   async getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number> {
     let query = this.firestore.collection(collection) as firestore.Query;
 
-    if (options) {
-      if (options.whereCollection) {
-        options.whereCollection.forEach((where) => {
-          query = query.where(
-            where.fieldPath as string,
-            where.operator.toString() as FirebaseFirestore.WhereFilterOp,
-            where.value,
-          );
-        });
-      }
+    if (options?.whereCollection) {
+      options.whereCollection.forEach((where) => {
+        query = query.where(
+          (where.fieldPath as unknown) as string,
+          where.operator.toString() as FirebaseFirestore.WhereFilterOp,
+          where.value,
+        );
+      });
     }
 
     const snapShot = await query.get();
