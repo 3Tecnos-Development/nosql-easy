@@ -81,7 +81,7 @@ export class FirestoreRepository implements IRepository {
       if (options.whereCollection) {
         options.whereCollection.forEach((where) => {
           query = query.where(
-            (where.fieldPath as unknown) as string,
+            where.fieldPath as string,
             where.operator.toString() as FirebaseFirestore.WhereFilterOp,
             where.value,
           );
@@ -90,10 +90,7 @@ export class FirestoreRepository implements IRepository {
 
       if (options.orderByCollection) {
         options.orderByCollection.forEach((orderBy) => {
-          query = query.orderBy(
-            (orderBy.fieldPath as unknown) as string,
-            orderBy.direction as FirebaseFirestore.OrderByDirection,
-          );
+          query = query.orderBy(orderBy.fieldPath as string, orderBy.direction as FirebaseFirestore.OrderByDirection);
         });
       }
 
@@ -159,6 +156,7 @@ export class FirestoreRepository implements IRepository {
     if (dataJSON.hasOwnProperty("id")) {
       const snapShot = this.firestore.collection(collection).doc(dataJSON.id);
       if (snapShot) {
+        delete dataJSON.id;
         await snapShot.update(dataJSON);
         return Promise.resolve();
       }
@@ -191,7 +189,7 @@ export class FirestoreRepository implements IRepository {
     if (options?.whereCollection) {
       options.whereCollection.forEach((where) => {
         query = query.where(
-          (where.fieldPath as unknown) as string,
+          where.fieldPath as string,
           where.operator.toString() as FirebaseFirestore.WhereFilterOp,
           where.value,
         );
