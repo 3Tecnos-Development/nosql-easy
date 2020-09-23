@@ -88,4 +88,13 @@ export class NoSqlEasy implements IRepository {
   async getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number> {
     return this.repository.getSizeCollection<T>(collection, options);
   }
+
+  getPaginatedCollection<T, F>(
+    collection: string,
+    queryParams?: any,
+    FilterClass?: (new () => F) | undefined,
+    orderBy?: OrderBy<T>,
+  ): Promise<T[]> {
+    return this.repository.getPaginatedCollection<T, F>(collection, queryParams, FilterClass, orderBy);
+  }
 }
