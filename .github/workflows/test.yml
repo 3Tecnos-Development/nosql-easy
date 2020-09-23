@@ -1,9 +1,8 @@
-name: Lint
+name: Lint & Test
 on:
   pull_request:
     branches:
       - master
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,4 +14,9 @@ jobs:
         with:
           node-version: 12
       - run: npm ci
+        env:
+          DB_DIALECT: ${{ secrets.DB_DIALECT }}
+          FIRESTORE_CREDENTIAL: ${{secrets.FIRESTORE_CREDENTIAL}}
+          AWS_CREDENTIAL: ${{secrets.AWS_CREDENTIAL}}
       - run: npm run lint
+      # - run: npm run test

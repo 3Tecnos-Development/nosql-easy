@@ -1,13 +1,19 @@
 /* eslint-disable no-unused-vars */
 import { Options } from "../types/Options";
 import { WhereFilterOp } from "../types/Where";
-import { OrderByDirection } from "../types/OrderBy";
+import { OrderByDirection, OrderBy } from "../types/OrderBy";
 
 export interface IRepository {
   insert<T>(collection: string, data: T): Promise<T>;
   insertWithId<T>(collection: string, data: T): Promise<T>;
   insertElementInArray(collection: string, id: string, arrayFieldName: string, Value: any): Promise<void>;
   getCollection<T>(collection: string, options?: Options<T>): Promise<T[]>;
+  getPaginatedCollection<T, F>(
+    collection: string,
+    queryParams?: any,
+    FilterClass?: new () => F,
+    orderBy?: OrderBy<T>,
+  ): Promise<T[]>;
   getById<T>(collection: string, id: string): Promise<T>;
   getByValue<T>(collection: string, fieldPath: string, value: any, whereFilter?: WhereFilterOp): Promise<T[]>;
   getByValueOrdered<T>(

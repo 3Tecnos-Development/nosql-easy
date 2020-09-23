@@ -1,3 +1,5 @@
+/* eslint-disable indent */
+/* eslint-disable @typescript-eslint/indent */
 /* eslint-disable prefer-promise-reject-errors */
 /* eslint-disable no-prototype-builtins */
 /* eslint-disable import/no-unresolved */
@@ -10,7 +12,7 @@ import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces/IFirestoreCredential";
 import { IRepository } from "../../interfaces/IRepository";
-import { Options } from "../../types";
+import { Options, Where, OrderBy } from "../../types";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
@@ -32,7 +34,6 @@ export class FirestoreRepository implements IRepository {
 
   async insert<T>(collection: string, data: T): Promise<T> {
     const dataJson = JSON.parse(JSON.stringify(data));
-
     await this.firestore
       .collection(collection)
       .add(dataJson)
@@ -199,5 +200,37 @@ export class FirestoreRepository implements IRepository {
     const snapShot = await query.get();
 
     return snapShot.size;
+  }
+
+  getPaginatedCollection<T, F>(
+    collection: string,
+    queryParams?: any,
+    FilterClass?: new () => F,
+    orderBy?: OrderBy<T>,
+  ): Promise<T[]> {
+    const filterCollection: Where<T>[] = [];
+    let options: Options<T> = {};
+    if (queryParams && Object.keys(queryParams).length > 0) {
+      const filter = FilterClass
+        ? plainToClassFromExist(new FilterClass(), queryParams, {
+            enableImplicitConversion: true,
+            excludeExtraneousValues: true,
+          })
+        : {};
+      Object.keys(filter).forEach((p: any) => {
+        const val = (filter as any)[p];
+        if (!!val || val === 0) filterCollection.push({ fieldPath: p, operator: "==", value: val });
+      });
+      let { limit, page } = queryParams;
+      limit = limit ? parseInt(limit, 10) : 10;
+      page = page && page > 0 ? parseInt(page, 10) : 1;
+      options = {
+        limit,
+        offset: limit * (page - 1),
+        whereCollection: filterCollection,
+      };
+    }
+    options.orderByCollection = orderBy ? [orderBy] : undefined;
+    return this.getCollection<T>(collection, options);
   }
 }

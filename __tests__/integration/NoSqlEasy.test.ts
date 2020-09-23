@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { DialectType } from "../../src/types/DialectType";
 import { NoSqlEasyConfig } from "../../src/Config";
-import { NoSqlEasy } from "../../src/index";
+import { NoSqlEasy, OrderBy } from "../../src/index";
 
 dotenv.config();
 
@@ -13,6 +13,12 @@ interface IFake {
   age: number;
   email: string;
   isDad?: boolean;
+}
+
+class FakeFilter {
+  name: string;
+
+  age: number;
 }
 
 NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
@@ -43,6 +49,7 @@ describe("NoSqlEasy", () => {
       name: "Jesus",
       age: 33,
       email: "jesus@3tecnos.com.br",
+      isDad: true,
     };
     const newFake = await noSqlEasy.insertWithId<IFake>("fakes", fake);
     const exists = await noSqlEasy.exists("fakes", newFake.id!);
@@ -68,6 +75,15 @@ describe("NoSqlEasy", () => {
     expect(compare).toBe(true);
   });
 
+  it("Testando o método getPaginatedCollection", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const queryParams = { isDad: true, limit: 1, page: 1 };
+    const orderBy: OrderBy<IFake> = { fieldPath: "age", direction: "desc" };
+    const fakes = await noSqlEasy.getPaginatedCollection<IFake, FakeFilter>("fakes", queryParams, FakeFilter, orderBy);
+    const compare = fakes.length > 0 && fakes.length <= 1 && fakes[0].age === 36;
+    expect(compare).toBe(true);
+  });
+
   it("Testando o método update", async () => {
     const fakeDad: IFake = {
       id: dynamicId,
@@ -78,7 +94,7 @@ describe("NoSqlEasy", () => {
     };
     const noSqlEasy = new NoSqlEasy();
     await noSqlEasy.update<IFake>("fakes", fakeDad);
-    const fakes = await noSqlEasy.getByValue<IFake>("fakes", "isDad", true);
+    const fakes = await noSqlEasy.getByValue<IFake>("fakes", "email", "lindsay@3tecnos.com.br");
     expect(fakes.length > 0 && fakes[0].name === "Lindsay").toBe(true);
   });
 

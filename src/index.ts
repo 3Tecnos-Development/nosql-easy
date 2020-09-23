@@ -34,31 +34,31 @@ export class NoSqlEasy implements IRepository {
     throw new Error("Provedor de Repositório não definido!");
   }
 
-  async insertWithId<T>(collection: string, data: T): Promise<T> {
+  insertWithId<T>(collection: string, data: T): Promise<T> {
     return this.repository.insertWithId<T>(collection, data);
   }
 
-  async insert<T>(collection: string, data: T): Promise<T> {
+  insert<T>(collection: string, data: T): Promise<T> {
     return this.repository.insert<T>(collection, data);
   }
 
-  async insertElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
+  insertElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
     return this.repository.insertElementInArray(collection, id, arrayFieldName, value);
   }
 
-  async getCollection<T>(collection: string, options?: Options<T>): Promise<T[]> {
+  getCollection<T>(collection: string, options?: Options<T>): Promise<T[]> {
     return this.repository.getCollection<T>(collection, options);
   }
 
-  async getById<T>(collection: string, id: string): Promise<T> {
+  getById<T>(collection: string, id: string): Promise<T> {
     return this.repository.getById(collection, id);
   }
 
-  async getByValue<T>(collection: string, fieldPath: string, value: any, operator?: WhereFilterOp): Promise<T[]> {
+  getByValue<T>(collection: string, fieldPath: string, value: any, operator?: WhereFilterOp): Promise<T[]> {
     return this.repository.getByValue<T>(collection, fieldPath, value, operator);
   }
 
-  async getByValueOrdered<T>(
+  getByValueOrdered<T>(
     collection: string,
     fieldPath: string,
     whereFilter: WhereFilterOp,
@@ -69,23 +69,32 @@ export class NoSqlEasy implements IRepository {
     return this.repository.getByValueOrdered<T>(collection, fieldPath, whereFilter, value, fieldOrder, direction);
   }
 
-  async update<T>(collection: string, data: T) {
+  update<T>(collection: string, data: T) {
     return this.repository.update<T>(collection, data);
   }
 
-  async updateField<T>(collection: string, id: string, fieldName: keyof T, value: any) {
+  updateField<T>(collection: string, id: string, fieldName: keyof T, value: any) {
     return this.repository.updateField(collection, id, fieldName, value);
   }
 
-  async remove(collection: string, id: string): Promise<void> {
+  remove(collection: string, id: string): Promise<void> {
     return this.repository.remove(collection, id);
   }
 
-  async exists(collection: string, id: string): Promise<boolean> {
+  exists(collection: string, id: string): Promise<boolean> {
     return this.repository.exists(collection, id);
   }
 
-  async getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number> {
+  getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number> {
     return this.repository.getSizeCollection<T>(collection, options);
+  }
+
+  getPaginatedCollection<T, F>(
+    collection: string,
+    queryParams?: any,
+    FilterClass?: (new () => F) | undefined,
+    orderBy?: OrderBy<T>,
+  ): Promise<T[]> {
+    return this.repository.getPaginatedCollection<T, F>(collection, queryParams, FilterClass, orderBy);
   }
 }
