@@ -1,3 +1,5 @@
+/* eslint-disable indent */
+/* eslint-disable @typescript-eslint/indent */
 /* eslint-disable prefer-promise-reject-errors */
 /* eslint-disable no-prototype-builtins */
 /* eslint-disable import/no-unresolved */
@@ -207,7 +209,7 @@ export class FirestoreRepository implements IRepository {
     FilterClass?: new () => F,
     orderBy?: OrderBy<T>,
   ): Promise<T[]> {
-    let filterCollection: Where<T>[] = [];
+    const filterCollection: Where<T>[] = [];
     let options: Options<T> = {};
     if (queryParams && Object.keys(queryParams).length > 0) {
       const filter = FilterClass
@@ -221,8 +223,8 @@ export class FirestoreRepository implements IRepository {
         if (!!val || val === 0) filterCollection.push({ fieldPath: p, operator: "==", value: val });
       });
       let { limit, page } = queryParams;
-      limit = limit ? parseInt(limit) : 10;
-      page = page && page > 0 ? parseInt(page) : 1;
+      limit = limit ? parseInt(limit, 10) : 10;
+      page = page && page > 0 ? parseInt(page, 10) : 1;
       options = {
         limit,
         offset: limit * (page - 1),
