@@ -34,7 +34,6 @@ export class FirestoreRepository implements IRepository {
 
   async insert<T>(collection: string, data: T): Promise<T> {
     const dataJson = JSON.parse(JSON.stringify(data));
-
     await this.firestore
       .collection(collection)
       .add(dataJson)

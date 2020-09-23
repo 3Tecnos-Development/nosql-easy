@@ -17,6 +17,7 @@ interface IFake {
 
 class FakeFilter {
   name: string;
+
   age: number;
 }
 
