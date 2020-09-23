@@ -19,4 +19,4 @@ jobs:
           FIRESTORE_CREDENTIAL: ${{secrets.FIRESTORE_CREDENTIAL}}
           AWS_CREDENTIAL: ${{secrets.AWS_CREDENTIAL}}
       - run: npm run lint
-      - run: npm run test
+      # - run: npm run test
