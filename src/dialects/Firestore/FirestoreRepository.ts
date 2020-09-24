@@ -63,6 +63,12 @@ export class FirestoreRepository implements IRepository {
     await docRef.update(arrayFieldName, firebase.firestore.FieldValue.arrayUnion(data));
   }
 
+  async removeElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
+    const data = JSON.parse(JSON.stringify(value));
+    const docRef = await this.firestore.collection(collection).doc(id);
+    await docRef.update(arrayFieldName, firebase.firestore.FieldValue.arrayRemove(data));
+  }
+
   generateDocumentId(collection: string): DocumentData {
     const document = this.firestore.collection(collection).doc();
     return document;
