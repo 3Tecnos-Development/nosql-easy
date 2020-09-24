@@ -7,6 +7,7 @@ export interface IRepository {
   insert<T>(collection: string, data: T): Promise<T>;
   insertWithId<T>(collection: string, data: T): Promise<T>;
   insertElementInArray(collection: string, id: string, arrayFieldName: string, Value: any): Promise<void>;
+  removeElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void>;
   getCollection<T>(collection: string, options?: Options<T>): Promise<T[]>;
   getPaginatedCollection<T, F>(
     collection: string,

@@ -46,6 +46,10 @@ export class NoSqlEasy implements IRepository {
     return this.repository.insertElementInArray(collection, id, arrayFieldName, value);
   }
 
+  removeElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
+    return this.repository.removeElementInArray(collection, id, arrayFieldName, value);
+  }
+
   getCollection<T>(collection: string, options?: Options<T>): Promise<T[]> {
     return this.repository.getCollection<T>(collection, options);
   }
