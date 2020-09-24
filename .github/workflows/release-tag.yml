@@ -44,4 +44,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GIT_PAT_TOKEN }}
           NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
         with:
-          bump_version_scheme: minor
+          bump_version_scheme: norelease
