@@ -2,6 +2,7 @@
 import { Options } from "../types/Options";
 import { WhereFilterOp } from "../types/Where";
 import { OrderByDirection, OrderBy } from "../types/OrderBy";
+import { FieldNested } from "../types";
 
 export interface IRepository {
   insert<T>(collection: string, data: T): Promise<T>;
@@ -26,7 +27,12 @@ export interface IRepository {
     direction?: OrderByDirection,
   ): Promise<T[]>;
   update<T>(collection: string, data: T): Promise<void>;
-  updateField<T>(collection: string, id: string, fieldName: keyof T, value: any): Promise<void>;
+  updateField<T, C = any>(
+    collection: string,
+    id: string,
+    field: keyof T | FieldNested<T, C>,
+    value: any,
+  ): Promise<void>;
   remove(collection: string, id: string): Promise<void>;
   exists(collection: string, id: string): Promise<boolean>;
   getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number>;

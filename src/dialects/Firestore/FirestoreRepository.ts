@@ -12,7 +12,7 @@ import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces/IFirestoreCredential";
 import { IRepository } from "../../interfaces/IRepository";
-import { Options, Where, OrderBy } from "../../types";
+import { Options, Where, OrderBy, FieldNested } from "../../types";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
@@ -86,9 +86,9 @@ export class FirestoreRepository implements IRepository {
 
     if (options) {
       if (options.whereCollection) {
-        options.whereCollection.forEach((where) => {
+        options.whereCollection.forEach((where: any) => {
           query = query.where(
-            where.fieldPath as string,
+            (where.fieldPath as string) || `${where.fieldParent}.${where.fielIn}}`,
             where.operator.toString() as FirebaseFirestore.WhereFilterOp,
             where.value,
           );
@@ -171,10 +171,19 @@ export class FirestoreRepository implements IRepository {
     return Promise.reject();
   }
 
-  async updateField<T>(collection: string, id: string, fieldName: keyof T, value: any): Promise<void> {
+  async updateField<T, C = any>(
+    collection: string,
+    id: string,
+    field: keyof T | FieldNested<T, C>,
+    value: any,
+  ): Promise<void> {
     const snapShot = this.firestore.collection(collection).doc(id);
     if (snapShot) {
-      await snapShot.update(fieldName as string, value);
+      let path = field as string;
+      if ((field as FieldNested<T, C>).parent) {
+        path = `${(field as FieldNested<T, C>).parent}.${(field as FieldNested<T, C>).child}`;
+      }
+      await snapShot.update(path, value);
       return Promise.resolve();
     }
     return Promise.reject();
@@ -194,7 +203,7 @@ export class FirestoreRepository implements IRepository {
     let query = this.firestore.collection(collection) as firestore.Query;
 
     if (options?.whereCollection) {
-      options.whereCollection.forEach((where) => {
+      options.whereCollection.forEach((where: any) => {
         query = query.where(
           where.fieldPath as string,
           where.operator.toString() as FirebaseFirestore.WhereFilterOp,
