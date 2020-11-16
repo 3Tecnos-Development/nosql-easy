@@ -177,10 +177,11 @@ export class FirestoreRepository implements IRepository {
     const snapShot = this.firestore.collection(collection).doc(id);
     if (snapShot) {
       let path = field as string;
+      const dataJSON = typeof value === "object" ? JSON.parse(JSON.stringify(value)) : value;
       if ((field as FieldNested<T, C>).parent) {
         path = `${(field as FieldNested<T, C>).parent}.${(field as FieldNested<T, C>).child}`;
       }
-      await snapShot.update(path, value);
+      await snapShot.update(path, dataJSON);
       return Promise.resolve();
     }
     return Promise.reject();
