@@ -2,7 +2,7 @@
 import { IRepository } from "./interfaces/IRepository";
 import { IProvider } from "./interfaces/IProvider";
 import { Options } from "./types/Options";
-import { OrderBy, OrderByDirection, Where, WhereFilterOp, DialectType } from "./types";
+import { OrderBy, OrderByDirection, Where, WhereFilterOp, DialectType, FieldNested, WhereNested } from "./types";
 import { IFirestoreCredential } from "./dialects/Firestore/interfaces/IFirestoreCredential";
 import { FirestoreRepository } from "./dialects/Firestore/FirestoreRepository";
 import { NoSqlEasyConfig } from "./Config";
@@ -11,7 +11,7 @@ export { IProvider, IRepository };
 
 export { NoSqlEasyConfig };
 
-export { DialectType, Options, OrderByDirection, OrderBy, WhereFilterOp, Where };
+export { DialectType, Options, OrderByDirection, OrderBy, WhereFilterOp, Where, WhereNested, FieldNested };
 
 export { IFirestoreCredential, FirestoreRepository };
 
@@ -77,8 +77,8 @@ export class NoSqlEasy implements IRepository {
     return this.repository.update<T>(collection, data);
   }
 
-  updateField<T>(collection: string, id: string, fieldName: keyof T, value: any) {
-    return this.repository.updateField(collection, id, fieldName, value);
+  updateField<T, C = any>(collection: string, id: string, field: keyof T | FieldNested<T, C>, value: any) {
+    return this.repository.updateField(collection, id, field, value);
   }
 
   remove(collection: string, id: string): Promise<void> {
