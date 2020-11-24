@@ -32,27 +32,31 @@ export class FirestoreRepository implements IRepository {
     this.firestore = firebase.firestore();
   }
 
-  async insert<T>(collection: string, data: T): Promise<T> {
+  async insert<T, R = T>(collection: string, data: T): Promise<R> {
     const dataJson = JSON.parse(JSON.stringify(data));
+    let response: R = (data as unknown) as R;
+
     await this.firestore
       .collection(collection)
       .add(dataJson)
       .then((docRef) => {
-        Object.assign(data, { id: docRef.id });
+        response = Object.assign({} as R, data, { id: docRef.id });
       })
       .catch((error) => {
         throw new Error(error);
       });
 
-    return data;
+    return response;
   }
 
-  async insertWithId<T>(collection: string, data: T): Promise<T> {
+  async insertWithId<T, R = T>(collection: string, data: T): Promise<R> {
     const dataJson = JSON.parse(JSON.stringify(data));
+    let response: R = (data as unknown) as R;
 
     if (dataJson.hasOwnProperty("id")) {
       await this.firestore.collection(collection).doc(dataJson.id!).set(dataJson);
-      return dataJson;
+      response = Object.assign({} as R, dataJson);
+      return response;
     }
     return Promise.reject("Id property not provided.");
   }
@@ -72,13 +76,6 @@ export class FirestoreRepository implements IRepository {
   generateDocumentId(collection: string): DocumentData {
     const document = this.firestore.collection(collection).doc();
     return document;
-  }
-
-  async insertWithID<T>(data: T, document: DocumentData): Promise<T> {
-    const dataJson = JSON.parse(JSON.stringify(data));
-    await document.set(dataJson);
-
-    return data;
   }
 
   async getCollection<T>(collection: string, options?: Options<T>): Promise<T[]> {
