@@ -5,8 +5,8 @@ import { OrderByDirection, OrderBy } from "../types/OrderBy";
 import { FieldNested } from "../types";
 
 export interface IRepository {
-  insert<T>(collection: string, data: T): Promise<T>;
-  insertWithId<T>(collection: string, data: T): Promise<T>;
+  insert<T, R>(collection: string, data: T): Promise<R>;
+  insertWithId<T, R>(collection: string, data: T): Promise<R>;
   insertElementInArray(collection: string, id: string, arrayFieldName: string, Value: any): Promise<void>;
   removeElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void>;
   getCollection<T>(collection: string, options?: Options<T>): Promise<T[]>;

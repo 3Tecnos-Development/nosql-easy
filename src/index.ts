@@ -34,12 +34,12 @@ export class NoSqlEasy implements IRepository {
     throw new Error("Provedor de Repositório não definido!");
   }
 
-  insertWithId<T>(collection: string, data: T): Promise<T> {
-    return this.repository.insertWithId<T>(collection, data);
+  insertWithId<T, R>(collection: string, data: T): Promise<R> {
+    return this.repository.insertWithId<T, R>(collection, data);
   }
 
-  insert<T>(collection: string, data: T): Promise<T> {
-    return this.repository.insert<T>(collection, data);
+  insert<T, R>(collection: string, data: T): Promise<R> {
+    return this.repository.insert<T, R>(collection, data);
   }
 
   insertElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
