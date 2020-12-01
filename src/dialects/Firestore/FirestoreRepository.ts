@@ -199,11 +199,8 @@ export class FirestoreRepository implements IRepository {
 
     if (options?.whereCollection) {
       options.whereCollection.forEach((where: any) => {
-        query = query.where(
-          where.fieldPath as string,
-          where.operator.toString() as FirebaseFirestore.WhereFilterOp,
-          where.value,
-        );
+        const fieldPath = where.fieldPath ? where.fieldPath : `${where.fieldParent}.${where.fieldNested}`;
+        query = query.where(fieldPath, where.operator.toString() as FirebaseFirestore.WhereFilterOp, where.value);
       });
     }
 
