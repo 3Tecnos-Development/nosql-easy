@@ -19,7 +19,9 @@ export class FirestoreRepository implements IRepository {
 
   constructor() {
     if (!firebase.apps.length) {
-      const firestoreCredential = MapEnv.get<IFirestoreCredential>("FIRESTORE_CREDENTIAL");
+      const firestoreCredential = MapEnv.get<IFirestoreCredential>(
+        "FIRESTORE_CREDENTIAL",
+      );
       firebase.initializeApp({
         credential: firebase.credential.cert({
           projectId: firestoreCredential.credential.projectId,
@@ -54,23 +56,42 @@ export class FirestoreRepository implements IRepository {
     let response: R = (data as unknown) as R;
 
     if (dataJson.hasOwnProperty("id")) {
-      await this.firestore.collection(collection).doc(dataJson.id!).set(dataJson);
+      await this.firestore
+        .collection(collection)
+        .doc(dataJson.id!)
+        .set(dataJson);
       response = Object.assign({} as R, dataJson);
       return response;
     }
     return Promise.reject("Id property not provided.");
   }
 
-  async insertElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
+  async insertElementInArray(
+    collection: string,
+    id: string,
+    arrayFieldName: string,
+    value: any,
+  ): Promise<void> {
     const data = JSON.parse(JSON.stringify(value));
     const docRef = await this.firestore.collection(collection).doc(id);
-    await docRef.update(arrayFieldName, firebase.firestore.FieldValue.arrayUnion(data));
+    await docRef.update(
+      arrayFieldName,
+      firebase.firestore.FieldValue.arrayUnion(data),
+    );
   }
 
-  async removeElementInArray(collection: string, id: string, arrayFieldName: string, value: any): Promise<void> {
+  async removeElementInArray(
+    collection: string,
+    id: string,
+    arrayFieldName: string,
+    value: any,
+  ): Promise<void> {
     const data = JSON.parse(JSON.stringify(value));
     const docRef = await this.firestore.collection(collection).doc(id);
-    await docRef.update(arrayFieldName, firebase.firestore.FieldValue.arrayRemove(data));
+    await docRef.update(
+      arrayFieldName,
+      firebase.firestore.FieldValue.arrayRemove(data),
+    );
   }
 
   generateDocumentId(collection: string): DocumentData {
@@ -78,20 +99,32 @@ export class FirestoreRepository implements IRepository {
     return document;
   }
 
-  async getCollection<T>(collection: string, options?: Options<T>): Promise<T[]> {
+  async getCollection<T>(
+    collection: string,
+    options?: Options<T>,
+  ): Promise<T[]> {
     let query = this.firestore.collection(collection) as firestore.Query;
 
     if (options) {
       if (options.whereCollection) {
         options.whereCollection.forEach((where: any) => {
-          const fieldPath = where.fieldPath ? where.fieldPath : `${where.fieldParent}.${where.fieldNested}`;
-          query = query.where(fieldPath, where.operator.toString() as FirebaseFirestore.WhereFilterOp, where.value);
+          const fieldPath = where.fieldPath
+            ? where.fieldPath
+            : `${where.fieldParent}.${where.fieldNested}`;
+          query = query.where(
+            fieldPath,
+            where.operator.toString() as FirebaseFirestore.WhereFilterOp,
+            where.value,
+          );
         });
       }
 
       if (options.orderByCollection) {
         options.orderByCollection.forEach((orderBy) => {
-          query = query.orderBy(orderBy.fieldPath as string, orderBy.direction as FirebaseFirestore.OrderByDirection);
+          query = query.orderBy(
+            orderBy.fieldPath as string,
+            orderBy.direction as FirebaseFirestore.OrderByDirection,
+          );
         });
       }
 
@@ -119,7 +152,10 @@ export class FirestoreRepository implements IRepository {
     value: any,
     operator: FirebaseFirestore.WhereFilterOp = "==",
   ): Promise<T[]> {
-    const snapShot = await this.firestore.collection(collection).where(fieldPath, operator, value).get();
+    const snapShot = await this.firestore
+      .collection(collection)
+      .where(fieldPath, operator, value)
+      .get();
     const elements = this.docToModel<T>(snapShot);
     return elements;
   }
@@ -141,7 +177,9 @@ export class FirestoreRepository implements IRepository {
     return elements;
   }
 
-  private docToModel<T>(snapShot: firestore.QuerySnapshot<firestore.DocumentData>): T[] {
+  private docToModel<T>(
+    snapShot: firestore.QuerySnapshot<firestore.DocumentData>,
+  ): T[] {
     const elems = [] as T[];
     if (!snapShot.empty) {
       snapShot.forEach((doc) => {
@@ -174,9 +212,12 @@ export class FirestoreRepository implements IRepository {
     const snapShot = this.firestore.collection(collection).doc(id);
     if (snapShot) {
       let path = field as string;
-      const dataJSON = typeof value === "object" ? JSON.parse(JSON.stringify(value)) : value;
+      const dataJSON =
+        typeof value === "object" ? JSON.parse(JSON.stringify(value)) : value;
       if ((field as FieldNested<T, C>).parent) {
-        path = `${(field as FieldNested<T, C>).parent}.${(field as FieldNested<T, C>).child}`;
+        path = `${(field as FieldNested<T, C>).parent}.${
+          (field as FieldNested<T, C>).child
+        }`;
       }
       await snapShot.update(path, dataJSON);
       return Promise.resolve();
@@ -194,13 +235,19 @@ export class FirestoreRepository implements IRepository {
     return snapShot.exists;
   }
 
-  async getSizeCollection<T>(collection: string, options?: Options<T>): Promise<number> {
+  async getSizeCollection<T>(
+    collection: string,
+    options?: Options<T>,
+  ): Promise<number> {
     let query = this.firestore.collection(collection) as firestore.Query;
 
     if (options?.whereCollection) {
       options.whereCollection.forEach((where: any) => {
+        const fieldPath = where.fieldPath
+          ? where.fieldPath
+          : `${where.fieldParent}.${where.fieldNested}`;
         query = query.where(
-          where.fieldPath as string,
+          fieldPath,
           where.operator.toString() as FirebaseFirestore.WhereFilterOp,
           where.value,
         );
@@ -229,7 +276,8 @@ export class FirestoreRepository implements IRepository {
         : {};
       Object.keys(filter).forEach((p: any) => {
         const val = (filter as any)[p];
-        if (!!val || val === 0) filterCollection.push({ fieldPath: p, operator: "==", value: val });
+        if (!!val || val === 0)
+          filterCollection.push({ fieldPath: p, operator: "==", value: val });
       });
       let { limit, page } = queryParams;
       limit = limit ? parseInt(limit, 10) : 10;
