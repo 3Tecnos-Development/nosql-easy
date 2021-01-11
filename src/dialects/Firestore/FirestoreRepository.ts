@@ -59,10 +59,9 @@ export class FirestoreRepository implements IRepository {
       .add(dataJson)
       .then(async (docRef) => {
         Object.assign(dataJson, { id: docRef.id });
-        response = await DataTransformAdapter.transform(
-          ResponseClass,
-          dataJson,
-        );
+        response = ResponseClass
+          ? await DataTransformAdapter.transform(ResponseClass, dataJson)
+          : dataJson;
       })
       .catch((error) => {
         throw new Error(error);
@@ -84,7 +83,9 @@ export class FirestoreRepository implements IRepository {
         .doc(dataJson.id!)
         .set(dataJson);
 
-      response = await DataTransformAdapter.transform(ResponseClass, dataJson);
+      response = ResponseClass
+        ? await DataTransformAdapter.transform(ResponseClass, dataJson)
+        : dataJson;
       return response;
     }
     return Promise.reject("Id property not provided.");
@@ -160,7 +161,9 @@ export class FirestoreRepository implements IRepository {
     const snapShot = await query.get();
     let elements = this.docToModel<R>(snapShot);
 
-    elements = await DataTransformAdapter.transform(ResponseClass, elements);
+    elements = ResponseClass
+      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      : elements;
 
     return elements;
   }
@@ -187,7 +190,9 @@ export class FirestoreRepository implements IRepository {
       .where(fieldPath, operator, value)
       .get();
     let elements = this.docToModel<R>(snapShot);
-    elements = await DataTransformAdapter.transform(ResponseClass, elements);
+    elements = ResponseClass
+      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      : elements;
     return elements;
   }
 
@@ -206,7 +211,9 @@ export class FirestoreRepository implements IRepository {
       .orderBy(fieldOrder, direction)
       .get();
     let elements = this.docToModel<R>(snapShot);
-    elements = await DataTransformAdapter.transform(ResponseClass, elements);
+    elements = ResponseClass
+      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      : elements;
     return elements;
   }
 
