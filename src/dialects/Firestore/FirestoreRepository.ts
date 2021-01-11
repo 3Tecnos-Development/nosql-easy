@@ -1,18 +1,17 @@
-/* eslint-disable indent */
 /* eslint-disable @typescript-eslint/indent */
+/* eslint-disable indent */
+/* eslint-disable class-methods-use-this */
+/* eslint-disable no-undef */
 /* eslint-disable prefer-promise-reject-errors */
 /* eslint-disable no-prototype-builtins */
 /* eslint-disable import/no-unresolved */
-/* eslint-disable no-undef */
-/* eslint-disable class-methods-use-this */
-
 import { MapEnv } from "map-env-node";
-import { plainToClassFromExist } from "class-transformer";
 import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
-import { IFirestoreCredential } from "./interfaces/IFirestoreCredential";
-import { IRepository } from "../../interfaces/IRepository";
-import { Options, Where, OrderBy, FieldNested } from "../../types";
+import { IFirestoreCredential } from "./interfaces";
+import { IRepository } from "../../interfaces";
+import { DataTransformAdapter } from "../../adapters/dataTransformer";
+import { FieldNested, Options, OrderBy, Where } from "../../types";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
@@ -34,24 +33,47 @@ export class FirestoreRepository implements IRepository {
     this.firestore = firebase.firestore();
   }
 
-  async insert<T, R = T>(collection: string, data: T): Promise<R> {
+  private docToModel<T>(
+    snapShot: firestore.QuerySnapshot<firestore.DocumentData>,
+  ): T[] {
+    const elems = [] as T[];
+    if (!snapShot.empty) {
+      snapShot.forEach((doc) => {
+        const elem = { id: doc.id, ...(doc.data() as T) };
+        elems.push(elem);
+      });
+    }
+    return elems;
+  }
+
+  async insert<T, R = T>(
+    collection: string,
+    data: T,
+    ResponseClass?: new () => R,
+  ): Promise<R> {
     const dataJson = JSON.parse(JSON.stringify(data));
-    let response: R = (data as unknown) as R;
+    let response = {} as R;
 
     await this.firestore
       .collection(collection)
       .add(dataJson)
-      .then((docRef) => {
-        response = Object.assign({} as R, data, { id: docRef.id });
+      .then(async (docRef) => {
+        Object.assign(dataJson, { id: docRef.id });
+        response = ResponseClass
+          ? await DataTransformAdapter.transform(ResponseClass, dataJson)
+          : dataJson;
       })
       .catch((error) => {
         throw new Error(error);
       });
-
     return response;
   }
 
-  async insertWithId<T, R = T>(collection: string, data: T): Promise<R> {
+  async insertWithId<T, R = T>(
+    collection: string,
+    data: T,
+    ResponseClass?: new () => R,
+  ): Promise<R> {
     const dataJson = JSON.parse(JSON.stringify(data));
     let response: R = (data as unknown) as R;
 
@@ -60,7 +82,10 @@ export class FirestoreRepository implements IRepository {
         .collection(collection)
         .doc(dataJson.id!)
         .set(dataJson);
-      response = Object.assign({} as R, dataJson);
+
+      response = ResponseClass
+        ? await DataTransformAdapter.transform(ResponseClass, dataJson)
+        : dataJson;
       return response;
     }
     return Promise.reject("Id property not provided.");
@@ -99,10 +124,11 @@ export class FirestoreRepository implements IRepository {
     return document;
   }
 
-  async getCollection<T>(
+  async getCollection<T, R = T>(
     collection: string,
     options?: Options<T>,
-  ): Promise<T[]> {
+    ResponseClass?: new () => R,
+  ): Promise<R[]> {
     let query = this.firestore.collection(collection) as firestore.Query;
 
     if (options) {
@@ -131,8 +157,14 @@ export class FirestoreRepository implements IRepository {
       query = options.limit ? query.limit(options.limit) : query;
       query = options.offset ? query.offset(options.offset) : query;
     }
+
     const snapShot = await query.get();
-    const elements = this.docToModel<T>(snapShot);
+    let elements = this.docToModel<R>(snapShot);
+
+    elements = ResponseClass
+      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      : elements;
+
     return elements;
   }
 
@@ -140,54 +172,49 @@ export class FirestoreRepository implements IRepository {
     let data = {} as T;
     const snapShot = await this.firestore.collection(collection).doc(id).get();
     if (snapShot?.data()) {
-      data = plainToClassFromExist(data, snapShot?.data());
       Object.assign(data, { id: snapShot?.id });
+      data = await DataTransformAdapter.transform(data, snapShot?.data());
     }
     return data;
   }
 
-  async getByValue<T>(
+  async getByValue<T, R = T>(
     collection: string,
     fieldPath: string,
     value: any,
     operator: FirebaseFirestore.WhereFilterOp = "==",
-  ): Promise<T[]> {
+    ResponseClass?: new () => R,
+  ): Promise<R[]> {
     const snapShot = await this.firestore
       .collection(collection)
       .where(fieldPath, operator, value)
       .get();
-    const elements = this.docToModel<T>(snapShot);
+    let elements = this.docToModel<R>(snapShot);
+    elements = ResponseClass
+      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      : elements;
     return elements;
   }
 
-  async getByValueOrdered<T>(
+  async getByValueOrdered<T, R = T>(
     collection: string,
     fieldPath: string,
     whereFilter: FirebaseFirestore.WhereFilterOp = "==",
     value: any,
     fieldOrder: string,
     direction: FirebaseFirestore.OrderByDirection = "desc",
-  ): Promise<T[]> {
+    ResponseClass?: new () => R,
+  ): Promise<R[]> {
     const snapShot = await this.firestore
       .collection(collection)
       .where(fieldPath, whereFilter, value)
       .orderBy(fieldOrder, direction)
       .get();
-    const elements = this.docToModel<T>(snapShot);
+    let elements = this.docToModel<R>(snapShot);
+    elements = ResponseClass
+      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      : elements;
     return elements;
-  }
-
-  private docToModel<T>(
-    snapShot: firestore.QuerySnapshot<firestore.DocumentData>,
-  ): T[] {
-    const elems = [] as T[];
-    if (!snapShot.empty) {
-      snapShot.forEach((doc) => {
-        const elem = { id: doc.id, ...(doc.data() as T) };
-        elems.push(elem);
-      });
-    }
-    return elems;
   }
 
   async update<T>(collection: string, data: T): Promise<void> {
@@ -259,21 +286,23 @@ export class FirestoreRepository implements IRepository {
     return snapShot.size;
   }
 
-  getPaginatedCollection<T, F>(
+  getPaginatedCollection<T, F, R = T>(
     collection: string,
     queryParams?: any,
     FilterClass?: new () => F,
     orderBy?: OrderBy<T>,
-  ): Promise<T[]> {
+    ResponseClass?: new () => R,
+  ): Promise<R[]> {
     const filterCollection: Where<T>[] = [];
     let options: Options<T> = {};
     if (queryParams && Object.keys(queryParams).length > 0) {
-      const filter = FilterClass
-        ? plainToClassFromExist(new FilterClass(), queryParams, {
-            enableImplicitConversion: true,
-            excludeExtraneousValues: true,
-          })
-        : {};
+      const filterClass: (new () => F) | undefined = FilterClass || undefined;
+
+      const filter = DataTransformAdapter.transform<new () => F, any>(
+        filterClass,
+        queryParams,
+      );
+
       Object.keys(filter).forEach((p: any) => {
         const val = (filter as any)[p];
         if (!!val || val === 0)
@@ -289,6 +318,6 @@ export class FirestoreRepository implements IRepository {
       };
     }
     options.orderByCollection = orderBy ? [orderBy] : undefined;
-    return this.getCollection<T>(collection, options);
+    return this.getCollection<T, R>(collection, options, ResponseClass);
   }
 }
