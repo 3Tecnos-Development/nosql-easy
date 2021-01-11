@@ -117,7 +117,7 @@ export class NoSqlEasy implements IRepository {
     fieldOrder: string,
     direction?: OrderByDirection,
     ResponseClass?: new () => R,
-  ) {
+  ): Promise<R[]> {
     return this.repository.getByValueOrdered<T, R>(
       collection,
       fieldPath,
