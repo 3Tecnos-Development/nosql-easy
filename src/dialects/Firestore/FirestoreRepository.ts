@@ -159,13 +159,6 @@ export class FirestoreRepository implements IRepository {
 
     const snapShot = await query.get();
     let elements = this.docToModel<R>(snapShot);
-    // let response: R[] = [];
-
-    // const response = ResponseClass
-    //   ? plainToClass(ResponseClass, elements, {
-    //       excludeExtraneousValues: true,
-    //     })
-    //   : Object.assign([] as R[], elements);
 
     elements = await DataTransformAdapter.transform(ResponseClass, elements);
 
@@ -177,7 +170,6 @@ export class FirestoreRepository implements IRepository {
     const snapShot = await this.firestore.collection(collection).doc(id).get();
     if (snapShot?.data()) {
       Object.assign(data, { id: snapShot?.id });
-      // data = plainToClassFromExist(data, snapShot?.data());
       data = await DataTransformAdapter.transform(data, snapShot?.data());
     }
     return data;
@@ -298,13 +290,6 @@ export class FirestoreRepository implements IRepository {
     let options: Options<T> = {};
     if (queryParams && Object.keys(queryParams).length > 0) {
       const filterClass: (new () => F) | undefined = FilterClass || undefined;
-
-      // const filter = FilterClass
-      //   ? plainToClassFromExist(new FilterClass(), queryParams, {
-      //       enableImplicitConversion: true,
-      //       excludeExtraneousValues: true,
-      //     })
-      //   : {};
 
       const filter = DataTransformAdapter.transform<new () => F, any>(
         filterClass,
