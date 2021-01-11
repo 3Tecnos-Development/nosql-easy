@@ -4,7 +4,26 @@ import { Options } from "./types/Options";
 import { IFirestoreCredential } from "./dialects/Firestore/interfaces";
 import { FirestoreRepository } from "./dialects/Firestore";
 import { NoSqlEasyConfig } from "./Config";
-import { FieldNested, OrderBy, OrderByDirection, WhereFilterOp } from "./types";
+import {
+  DialectType,
+  FieldNested,
+  OrderBy,
+  OrderByDirection,
+  Where,
+  WhereFilterOp,
+  WhereNested,
+} from "./types";
+
+export {
+  DialectType,
+  Options,
+  OrderByDirection,
+  OrderBy,
+  WhereFilterOp,
+  Where,
+  WhereNested,
+  FieldNested,
+};
 
 export { NoSqlEasyConfig };
 

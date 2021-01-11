@@ -4,8 +4,9 @@ import dotenv from "dotenv";
 import { plainToClass } from "class-transformer";
 import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
-import { NoSqlEasy, OrderBy } from "../../index";
+import { NoSqlEasy } from "../../index";
 import { FakeFilter, FakeResponse } from "../entities";
+import { OrderBy } from "../../types";
 
 dotenv.config();
 
