@@ -6,7 +6,6 @@
 /* eslint-disable no-prototype-builtins */
 /* eslint-disable import/no-unresolved */
 import { MapEnv } from "map-env-node";
-import { plainToClass, plainToClassFromExist } from "class-transformer";
 import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces/IFirestoreCredential";
