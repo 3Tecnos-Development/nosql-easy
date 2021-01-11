@@ -8,10 +8,10 @@
 import { MapEnv } from "map-env-node";
 import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
-import { IFirestoreCredential } from "./interfaces/IFirestoreCredential";
-import { IRepository } from "../../interfaces/IRepository";
-import { Options, Where, OrderBy, FieldNested } from "../../types";
-import { DataTransformAdapter } from "../../adapters/dataTransformer/DataTransformAdapter";
+import { IFirestoreCredential } from "./interfaces";
+import { IRepository } from "../../interfaces";
+import { DataTransformAdapter } from "../../adapters/dataTransformer";
+import { FieldNested, Options, OrderBy, Where } from "../../types";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;

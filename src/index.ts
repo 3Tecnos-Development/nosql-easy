@@ -1,34 +1,12 @@
 /* eslint-disable no-array-constructor */
-import { IRepository } from "./interfaces/IRepository";
-import { IProvider } from "./interfaces/IProvider";
+import { IRepository, IProvider } from "./interfaces";
 import { Options } from "./types/Options";
-import {
-  OrderBy,
-  OrderByDirection,
-  Where,
-  WhereFilterOp,
-  DialectType,
-  FieldNested,
-  WhereNested,
-} from "./types";
-import { IFirestoreCredential } from "./dialects/Firestore/interfaces/IFirestoreCredential";
-import { FirestoreRepository } from "./dialects/Firestore/FirestoreRepository";
+import { IFirestoreCredential } from "./dialects/Firestore/interfaces";
+import { FirestoreRepository } from "./dialects/Firestore";
 import { NoSqlEasyConfig } from "./Config";
-
-export { IProvider, IRepository };
+import { FieldNested, OrderBy, OrderByDirection, WhereFilterOp } from "./types";
 
 export { NoSqlEasyConfig };
-
-export {
-  DialectType,
-  Options,
-  OrderByDirection,
-  OrderBy,
-  WhereFilterOp,
-  Where,
-  WhereNested,
-  FieldNested,
-};
 
 export { IFirestoreCredential, FirestoreRepository };
 
