@@ -139,6 +139,27 @@ describe("NoSqlEasy", () => {
     expect(compare).toBe(true);
   });
 
+  it("Testando o método getPaginatedCollection com o parâmetro minimumSizeToPaginated", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const queryParams = { limit: 1, page: 1 };
+    const sizeCollection = await noSqlEasy.getSizeCollection("fakes");
+    const docs = await noSqlEasy.getPaginatedCollection<IFake, FakeFilter>(
+      "fakes",
+      queryParams,
+      undefined,
+      undefined,
+      sizeCollection + 1,
+    );
+
+    const docsPaginated = await noSqlEasy.getPaginatedCollection<
+      IFake,
+      FakeFilter
+    >("fakes", queryParams, undefined, undefined, sizeCollection - 1);
+
+    expect(docs?.length).toEqual(sizeCollection);
+    expect(docsPaginated?.length).toEqual(queryParams.limit);
+  });
+
   it("Testando o método update", async () => {
     const fakeDad: IFake = {
       id: dynamicId,
@@ -235,6 +256,7 @@ describe("NoSqlEasy", () => {
       },
       undefined,
       undefined,
+      undefined,
       FakeResponse,
     );
 
@@ -298,7 +320,7 @@ describe("NoSqlEasy", () => {
       IFake,
       IFakeItem,
       FakeItemResponse
-    >("fakes", "123456", "items", 1, 5, FakeItemResponse);
+    >("fakes", "123456", "items", 1, 5, undefined, FakeItemResponse);
 
     const toCompare = mockFakeItem(response[0].value);
 
@@ -327,6 +349,37 @@ describe("NoSqlEasy", () => {
     expect(toCompare[lastIndex]).toMatchObject(
       arrayPaginated[arrayPaginated.length - 1],
     );
+  });
+
+  it("Testando o método getPaginatedArray com o parâmetro minimumSizeToPaginated", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const pageSize = 5;
+    const pageNumber = 1;
+
+    const fake = await noSqlEasy.getById<IFake>("fakes", "123456");
+    const toCompare = fake.items;
+
+    const array = await noSqlEasy.getPaginatedArray<IFake, IFakeItem>(
+      "fakes",
+      "123456",
+      "items",
+      pageNumber,
+      pageSize,
+      fake.items?.length + 1,
+    );
+
+    const arrayPaginated = await noSqlEasy.getPaginatedArray<IFake, IFakeItem>(
+      "fakes",
+      "123456",
+      "items",
+      pageNumber,
+      pageSize,
+      fake.items?.length - 1,
+    );
+
+    expect(toCompare).toEqual(array);
+    expect(toCompare).toEqual(expect.arrayContaining(arrayPaginated));
+    expect(arrayPaginated.length).toEqual(pageSize);
   });
 
   it("Testando o método remove", async () => {
