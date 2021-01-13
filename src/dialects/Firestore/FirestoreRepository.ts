@@ -12,6 +12,7 @@ import { IFirestoreCredential } from "./interfaces";
 import { IRepository } from "../../interfaces";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 import { FieldNested, Options, OrderBy, Where } from "../../types";
+import { paginateArray } from "../../helpers";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
@@ -60,7 +61,9 @@ export class FirestoreRepository implements IRepository {
       .then(async (docRef) => {
         Object.assign(dataJson, { id: docRef.id });
         response = ResponseClass
-          ? await DataTransformAdapter.transform(ResponseClass, dataJson)
+          ? await DataTransformAdapter.transform(ResponseClass, dataJson, {
+              excludeExtraneousValues: true,
+            })
           : dataJson;
       })
       .catch((error) => {
@@ -84,7 +87,9 @@ export class FirestoreRepository implements IRepository {
         .set(dataJson);
 
       response = ResponseClass
-        ? await DataTransformAdapter.transform(ResponseClass, dataJson)
+        ? await DataTransformAdapter.transform(ResponseClass, dataJson, {
+            excludeExtraneousValues: true,
+          })
         : dataJson;
       return response;
     }
@@ -162,18 +167,30 @@ export class FirestoreRepository implements IRepository {
     let elements = this.docToModel<R>(snapShot);
 
     elements = ResponseClass
-      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      ? await DataTransformAdapter.transform(ResponseClass, elements, {
+          excludeExtraneousValues: true,
+        })
       : elements;
 
     return elements;
   }
 
-  async getById<T>(collection: string, id: string): Promise<T> {
-    let data = {} as T;
+  async getById<T, R = T>(
+    collection: string,
+    id: string,
+    ResponseClass?: new () => R,
+  ): Promise<R> {
+    let data = {} as R;
     const snapShot = await this.firestore.collection(collection).doc(id).get();
     if (snapShot?.data()) {
       Object.assign(data, { id: snapShot?.id });
-      data = await DataTransformAdapter.transform(data, snapShot?.data());
+      data = ResponseClass
+        ? await DataTransformAdapter.transform(
+            ResponseClass,
+            snapShot?.data(),
+            { excludeExtraneousValues: true },
+          )
+        : await DataTransformAdapter.transform(data, snapShot?.data());
     }
     return data;
   }
@@ -191,7 +208,9 @@ export class FirestoreRepository implements IRepository {
       .get();
     let elements = this.docToModel<R>(snapShot);
     elements = ResponseClass
-      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      ? await DataTransformAdapter.transform(ResponseClass, elements, {
+          excludeExtraneousValues: true,
+        })
       : elements;
     return elements;
   }
@@ -212,7 +231,9 @@ export class FirestoreRepository implements IRepository {
       .get();
     let elements = this.docToModel<R>(snapShot);
     elements = ResponseClass
-      ? await DataTransformAdapter.transform(ResponseClass, elements)
+      ? await DataTransformAdapter.transform(ResponseClass, elements, {
+          excludeExtraneousValues: true,
+        })
       : elements;
     return elements;
   }
@@ -319,5 +340,30 @@ export class FirestoreRepository implements IRepository {
     }
     options.orderByCollection = orderBy ? [orderBy] : undefined;
     return this.getCollection<T, R>(collection, options, ResponseClass);
+  }
+
+  async getPaginatedArray<T, A, R = A>(
+    collection: string,
+    id: string,
+    field: keyof T,
+    pageNumber: number,
+    pageSize?: number,
+    ResponseClass?: new () => R,
+  ): Promise<R[]> {
+    const doc = await this.getById<T>(collection, id);
+    const array = doc ? (doc as any)[field] : [];
+    const arrayPaginated = paginateArray(array, pageNumber, pageSize);
+
+    const response: R[] = ResponseClass
+      ? await DataTransformAdapter.transform(
+          ResponseClass,
+          <any[]>arrayPaginated,
+          {
+            excludeExtraneousValues: true,
+          },
+        )
+      : (arrayPaginated as R[]);
+
+    return response;
   }
 }

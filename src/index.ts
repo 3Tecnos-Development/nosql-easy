@@ -108,8 +108,12 @@ export class NoSqlEasy implements IRepository {
     );
   }
 
-  getById<T>(collection: string, id: string): Promise<T> {
-    return this.repository.getById(collection, id);
+  getById<T, R = T>(
+    collection: string,
+    id: string,
+    ResponseClass?: new () => R,
+  ): Promise<R> {
+    return this.repository.getById<T, R>(collection, id, ResponseClass);
   }
 
   getByValue<T, R = T>(
@@ -188,6 +192,24 @@ export class NoSqlEasy implements IRepository {
       queryParams,
       FilterClass,
       orderBy,
+      ResponseClass,
+    );
+  }
+
+  getPaginatedArray<T, A, R = A>(
+    collection: string,
+    id: string,
+    field: keyof T,
+    pageNumber: number,
+    pageSize?: number,
+    ResponseClass?: new () => R,
+  ): Promise<R[]> {
+    return this.repository.getPaginatedArray<T, A, R>(
+      collection,
+      id,
+      field,
+      pageNumber,
+      pageSize,
       ResponseClass,
     );
   }
