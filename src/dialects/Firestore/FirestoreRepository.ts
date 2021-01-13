@@ -307,15 +307,17 @@ export class FirestoreRepository implements IRepository {
     return snapShot.size;
   }
 
-  getPaginatedCollection<T, F, R = T>(
+  async getPaginatedCollection<T, F, R = T>(
     collection: string,
     queryParams?: any,
     FilterClass?: new () => F,
     orderBy?: OrderBy<T>,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]> {
     const filterCollection: Where<T>[] = [];
     let options: Options<T> = {};
+
     if (queryParams && Object.keys(queryParams).length > 0) {
       const filterClass: (new () => F) | undefined = FilterClass || undefined;
 
@@ -329,14 +331,25 @@ export class FirestoreRepository implements IRepository {
         if (!!val || val === 0)
           filterCollection.push({ fieldPath: p, operator: "==", value: val });
       });
-      let { limit, page } = queryParams;
-      limit = limit ? parseInt(limit, 10) : 10;
-      page = page && page > 0 ? parseInt(page, 10) : 1;
-      options = {
-        limit,
-        offset: limit * (page - 1),
-        whereCollection: filterCollection,
-      };
+
+      let paginationEnabled = true;
+      if (minimumSizeToPaginated) {
+        const sizeCollection = await this.getSizeCollection(collection, {
+          whereCollection: filterCollection,
+        });
+        paginationEnabled = sizeCollection >= minimumSizeToPaginated;
+      }
+
+      if (paginationEnabled) {
+        let { limit, page } = queryParams;
+        limit = limit ? parseInt(limit, 10) : 10;
+        page = page && page > 0 ? parseInt(page, 10) : 1;
+        options = {
+          limit,
+          offset: limit * (page - 1),
+        };
+      }
+      options.whereCollection = filterCollection;
     }
     options.orderByCollection = orderBy ? [orderBy] : undefined;
     return this.getCollection<T, R>(collection, options, ResponseClass);
@@ -348,11 +361,15 @@ export class FirestoreRepository implements IRepository {
     field: keyof T,
     pageNumber: number,
     pageSize?: number,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]> {
     const doc = await this.getById<T>(collection, id);
-    const array = doc ? (doc as any)[field] : [];
-    const arrayPaginated = paginateArray(array, pageNumber, pageSize);
+    const array = doc ? ((doc as any)[field] as []) : [];
+    const arrayPaginated =
+      minimumSizeToPaginated && array.length < minimumSizeToPaginated
+        ? array
+        : paginateArray(array, pageNumber, pageSize);
 
     const response: R[] = ResponseClass
       ? await DataTransformAdapter.transform(

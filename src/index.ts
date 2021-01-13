@@ -185,6 +185,7 @@ export class NoSqlEasy implements IRepository {
     queryParams?: any,
     FilterClass?: (new () => F) | undefined,
     orderBy?: OrderBy<T>,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]> {
     return this.repository.getPaginatedCollection<T, F, R>(
@@ -192,6 +193,7 @@ export class NoSqlEasy implements IRepository {
       queryParams,
       FilterClass,
       orderBy,
+      minimumSizeToPaginated,
       ResponseClass,
     );
   }
@@ -202,6 +204,7 @@ export class NoSqlEasy implements IRepository {
     field: keyof T,
     pageNumber: number,
     pageSize?: number,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]> {
     return this.repository.getPaginatedArray<T, A, R>(
@@ -210,6 +213,7 @@ export class NoSqlEasy implements IRepository {
       field,
       pageNumber,
       pageSize,
+      minimumSizeToPaginated,
       ResponseClass,
     );
   }

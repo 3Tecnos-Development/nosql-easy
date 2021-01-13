@@ -37,6 +37,7 @@ export interface IRepository {
     queryParams?: any,
     FilterClass?: new () => F,
     orderBy?: OrderBy<T>,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]>;
   getById<T, R = T>(
@@ -79,6 +80,7 @@ export interface IRepository {
     field: keyof T,
     pageNumber: number,
     pageSize?: number,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]>;
 }
