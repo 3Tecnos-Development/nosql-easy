@@ -365,11 +365,14 @@ export class FirestoreRepository implements IRepository {
     ResponseClass?: new () => R,
   ): Promise<R[]> {
     const doc = await this.getById<T>(collection, id);
-    const array = doc ? ((doc as any)[field] as []) : [];
+    const fieldValue = doc ? ((doc as any)[field] as []) : [];
+    if (!Array.isArray(fieldValue))
+      return Promise.reject("The field is not an array.");
+
     const arrayPaginated =
-      minimumSizeToPaginated && array.length < minimumSizeToPaginated
-        ? array
-        : paginateArray(array, pageNumber, pageSize);
+      minimumSizeToPaginated && fieldValue.length < minimumSizeToPaginated
+        ? fieldValue
+        : paginateArray(fieldValue, pageNumber, pageSize);
 
     const response: R[] = ResponseClass
       ? await DataTransformAdapter.transform(
