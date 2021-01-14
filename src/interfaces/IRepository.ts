@@ -37,9 +37,14 @@ export interface IRepository {
     queryParams?: any,
     FilterClass?: new () => F,
     orderBy?: OrderBy<T>,
+    minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]>;
-  getById<T>(collection: string, id: string): Promise<T>;
+  getById<T, R = T>(
+    collection: string,
+    id: string,
+    ResponseClass?: new () => R,
+  ): Promise<R>;
   getByValue<T, R = T>(
     collection: string,
     fieldPath: string,
@@ -69,4 +74,13 @@ export interface IRepository {
     collection: string,
     options?: Options<T>,
   ): Promise<number>;
+  getPaginatedArray<T, A, R = A>(
+    collection: string,
+    id: string,
+    field: keyof T,
+    pageNumber: number,
+    pageSize?: number,
+    minimumSizeToPaginated?: number,
+    ResponseClass?: new () => R,
+  ): Promise<R[]>;
 }

@@ -22,6 +22,7 @@
   "homepage": "https://github.com/3Tecnos-Development/nosql-easy#readme",
   "devDependencies": {
     "@firebase/firestore-types": "^1.13.0",
+    "@types/faker": "^5.1.5",
     "@types/jest": "^26.0.5",
     "@typescript-eslint/eslint-plugin": "^4.1.0",
     "@typescript-eslint/parser": "^4.1.0",
@@ -38,6 +39,7 @@
   "dependencies": {
     "class-transformer": "^0.2.3",
     "dotenv": "^8.2.0",
+    "faker": "^5.1.0",
     "firebase": "^7.16.1",
     "firebase-admin": "^9.0.0",
     "map-env-node": "^0.1.7"
