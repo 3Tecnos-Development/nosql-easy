@@ -382,6 +382,22 @@ describe("NoSqlEasy", () => {
     expect(arrayPaginated.length).toEqual(pageSize);
   });
 
+  it("Testando o método getPaginatedArray passando um campo que não seja array e esperando o erro", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const pageSize = 5;
+    const pageNumber = 1;
+
+    expect(
+      noSqlEasy.getPaginatedArray<IFake, IFakeItem>(
+        "fakes",
+        "123456",
+        "email",
+        pageNumber,
+        pageSize,
+      ),
+    ).rejects.toEqual("The field is not an array.");
+  });
+
   it("Testando o método remove", async () => {
     const noSqlEasy = new NoSqlEasy();
     await noSqlEasy.remove("fakes", insertTestId);
