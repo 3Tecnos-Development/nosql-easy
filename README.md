@@ -19,7 +19,7 @@ npm install nosql-easy
 
 ```
 
-## Database actually supported
+## Database currently supported
 
 - Firebase - Firestore
 
