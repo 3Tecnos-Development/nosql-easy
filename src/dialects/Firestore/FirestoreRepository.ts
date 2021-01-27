@@ -321,7 +321,7 @@ export class FirestoreRepository implements IRepository {
     if (queryParams && Object.keys(queryParams).length > 0) {
       const filterClass: (new () => F) | undefined = FilterClass || undefined;
 
-      const filter = DataTransformAdapter.transform<new () => F, any>(
+      const filter = await DataTransformAdapter.transform<new () => F, any>(
         filterClass,
         queryParams,
       );
