@@ -1,5 +1,6 @@
-export class FakeFilter {
-  name: string;
+import { Expose } from "class-transformer";
 
-  age: number;
+export class FakeFilter {
+  @Expose()
+  isDad: boolean;
 }

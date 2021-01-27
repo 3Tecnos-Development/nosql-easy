@@ -127,6 +127,7 @@ describe("NoSqlEasy", () => {
     const noSqlEasy = new NoSqlEasy();
     const queryParams = { isDad: true, limit: 1, page: 1 };
     const orderBy: OrderBy<IFake> = { fieldPath: "age", direction: "desc" };
+
     const fakes = await noSqlEasy.getPaginatedCollection<IFake, FakeFilter>(
       "fakes",
       queryParams,
@@ -134,8 +135,7 @@ describe("NoSqlEasy", () => {
       orderBy,
     );
 
-    const compare =
-      fakes.length > 0 && fakes.length <= 1 && fakes[0].age === 36;
+    const compare = fakes.length > 0 && fakes.length <= 1 && fakes[0].isDad;
     expect(compare).toBe(true);
   });
 
@@ -143,10 +143,11 @@ describe("NoSqlEasy", () => {
     const noSqlEasy = new NoSqlEasy();
     const queryParams = { limit: 1, page: 1 };
     const sizeCollection = await noSqlEasy.getSizeCollection("fakes");
+
     const docs = await noSqlEasy.getPaginatedCollection<IFake, FakeFilter>(
       "fakes",
       queryParams,
-      undefined,
+      FakeFilter,
       undefined,
       sizeCollection + 1,
     );
@@ -154,7 +155,7 @@ describe("NoSqlEasy", () => {
     const docsPaginated = await noSqlEasy.getPaginatedCollection<
       IFake,
       FakeFilter
-    >("fakes", queryParams, undefined, undefined, sizeCollection - 1);
+    >("fakes", queryParams, FakeFilter, undefined, sizeCollection - 1);
 
     expect(docs?.length).toEqual(sizeCollection);
     expect(docsPaginated?.length).toEqual(queryParams.limit);
@@ -259,7 +260,6 @@ describe("NoSqlEasy", () => {
       undefined,
       FakeResponse,
     );
-
     const objectResponse = response.find((i) => i.id === "123456");
     const toCompare = mockFake(objectResponse?.id!);
 
