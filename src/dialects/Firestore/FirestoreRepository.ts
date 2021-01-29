@@ -319,19 +319,19 @@ export class FirestoreRepository implements IRepository {
     let options: Options<T> = {};
 
     if (queryParams && Object.keys(queryParams).length > 0) {
-      const filterClass: (new () => F) | undefined = FilterClass || undefined;
-
-      const filter = DataTransformAdapter.transform<new () => F, any>(
-        filterClass,
-        queryParams,
-      );
+      const filter = FilterClass
+        ? await DataTransformAdapter.transform<new () => F, any>(
+            FilterClass,
+            queryParams,
+            { excludeExtraneousValues: true, enableImplicitConversion: true },
+          )
+        : {};
 
       Object.keys(filter).forEach((p: any) => {
         const val = (filter as any)[p];
         if (!!val || val === 0)
           filterCollection.push({ fieldPath: p, operator: "==", value: val });
       });
-
       let paginationEnabled = true;
       if (minimumSizeToPaginated) {
         const sizeCollection = await this.getSizeCollection(collection, {
@@ -351,6 +351,7 @@ export class FirestoreRepository implements IRepository {
       }
       options.whereCollection = filterCollection;
     }
+
     options.orderByCollection = orderBy ? [orderBy] : undefined;
     return this.getCollection<T, R>(collection, options, ResponseClass);
   }
