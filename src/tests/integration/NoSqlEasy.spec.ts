@@ -27,6 +27,7 @@ interface IFake {
   email: string;
   isDad?: boolean;
   items: IFakeItem[];
+  birth?: Date;
 }
 
 NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
@@ -66,10 +67,12 @@ describe("NoSqlEasy", () => {
       age: 36,
       email: "lindsay@3tecnos.com.br",
       items: [],
+      birth: undefined,
     };
     const newFake = await new NoSqlEasy().insert<IFake>("fakes", fake);
     dynamicId = newFake.id!;
     expect(newFake.id!.length > 0).toBe(true);
+    expect(newFake).not.toHaveProperty("birth");
   });
 
   it("Testando o método exists", async () => {
@@ -86,10 +89,12 @@ describe("NoSqlEasy", () => {
       email: "jesus@3tecnos.com.br",
       isDad: true,
       items: mockItems(20),
+      birth: undefined,
     };
     const newFake = await noSqlEasy.insertWithId<IFake>("fakes", fake);
     const exists = await noSqlEasy.exists("fakes", newFake.id!);
     expect(exists).toBe(true);
+    expect(newFake).not.toHaveProperty("birth");
   });
 
   it("Testando o método getById", async () => {
@@ -169,6 +174,7 @@ describe("NoSqlEasy", () => {
       email: "lindsay@3tecnos.com.br",
       isDad: true,
       items: [],
+      birth: undefined,
     };
     const noSqlEasy = new NoSqlEasy();
     await noSqlEasy.update<IFake>("fakes", fakeDad);
@@ -178,6 +184,7 @@ describe("NoSqlEasy", () => {
       "lindsay@3tecnos.com.br",
     );
     expect(fakes.length > 0 && fakes[0].name === "Lindsay").toBe(true);
+    expect(fakes).not.toHaveProperty("birth");
   });
 
   it("Testando o método updateField", async () => {
@@ -202,6 +209,7 @@ describe("NoSqlEasy", () => {
       age: 42,
       email: "moirocar@gmail.com",
       items: [],
+      birth: new Date(1988, 10, 10),
     };
 
     const noSqlEasy = new NoSqlEasy();
@@ -225,6 +233,7 @@ describe("NoSqlEasy", () => {
       email: "jesus@3tecnos.com.br",
       isDad: true,
       items: mockItems(20),
+      birth: new Date(1988, 10, 10),
     };
     const response = await noSqlEasy.insertWithId("fakes", fake, FakeResponse);
 
@@ -398,6 +407,24 @@ describe("NoSqlEasy", () => {
     ).rejects.toEqual("The field is not an array.");
   });
 
+  it("Testando o retorno de documento com propriedade do tipo Date", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const birth = new Date(1991, 3, 5);
+    const fake: IFake = {
+      id: "9876",
+      name: "Fabiano",
+      age: 29,
+      email: "fabiano@3tecnos.com.br",
+      isDad: false,
+      items: [],
+      birth,
+    };
+    await noSqlEasy.insertWithId<IFake>("fakes", fake);
+
+    const fakeResponse = await noSqlEasy.getById<IFake>("fakes", "9876");
+    expect(fakeResponse.birth).toEqual(birth);
+  });
+
   it("Testando o método remove", async () => {
     const noSqlEasy = new NoSqlEasy();
     await noSqlEasy.remove("fakes", insertTestId);
@@ -405,6 +432,7 @@ describe("NoSqlEasy", () => {
     await noSqlEasy.remove("fakes", "123456");
     await noSqlEasy.remove("fakes", "000000");
     await noSqlEasy.remove("fakes", "111111");
+    await noSqlEasy.remove("fakes", "9876");
     const [existsOne, existsSecond] = await Promise.all([
       noSqlEasy.exists("fakes", dynamicId),
       noSqlEasy.exists("fakes", "123456"),
