@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/indent */
 /* eslint-disable indent */
 /* eslint-disable class-methods-use-this */
@@ -47,24 +48,42 @@ export class FirestoreRepository implements IRepository {
     return elems;
   }
 
+  private removeUndefinedProps<T>(data: T): T {
+    const obj = data as any;
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] === undefined) {
+        delete obj[key];
+        return;
+      }
+      const propertyIsAnObject =
+        obj[key] && typeof obj[key] === "object" && !(obj[key] instanceof Date);
+      if (propertyIsAnObject) {
+        this.removeUndefinedProps(obj[key]);
+        const objectWithoutProperties = !Object.keys(obj[key]).length;
+        if (objectWithoutProperties) delete obj[key];
+      }
+    });
+    return data;
+  }
+
   async insert<T, R = T>(
     collection: string,
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R> {
-    const dataJson = JSON.parse(JSON.stringify(data));
+    this.removeUndefinedProps(data);
     let response = {} as R;
 
     await this.firestore
       .collection(collection)
-      .add(dataJson)
+      .add(data)
       .then(async (docRef) => {
-        Object.assign(dataJson, { id: docRef.id });
+        Object.assign(data, { id: docRef.id });
         response = ResponseClass
-          ? await DataTransformAdapter.transform(ResponseClass, dataJson, {
+          ? await DataTransformAdapter.transform(ResponseClass, data, {
               excludeExtraneousValues: true,
             })
-          : dataJson;
+          : ((data as unknown) as R);
       })
       .catch((error) => {
         throw new Error(error);
@@ -77,20 +96,23 @@ export class FirestoreRepository implements IRepository {
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R> {
-    const dataJson = JSON.parse(JSON.stringify(data));
-    let response: R = (data as unknown) as R;
+    this.removeUndefinedProps(data);
 
-    if (dataJson.hasOwnProperty("id")) {
+    if ((data as any).hasOwnProperty("id")) {
       await this.firestore
         .collection(collection)
-        .doc(dataJson.id!)
-        .set(dataJson);
+        .doc((data as any).id!)
+        .set(data);
 
-      response = ResponseClass
-        ? await DataTransformAdapter.transform(ResponseClass, dataJson, {
-            excludeExtraneousValues: true,
-          })
-        : dataJson;
+      const response = ResponseClass
+        ? await DataTransformAdapter.transform<R, unknown>(
+            ResponseClass,
+            data,
+            {
+              excludeExtraneousValues: true,
+            },
+          )
+        : ((data as unknown) as R);
       return response;
     }
     return Promise.reject("Id property not provided.");
@@ -102,11 +124,11 @@ export class FirestoreRepository implements IRepository {
     arrayFieldName: string,
     value: any,
   ): Promise<void> {
-    const data = JSON.parse(JSON.stringify(value));
+    this.removeUndefinedProps(value);
     const docRef = await this.firestore.collection(collection).doc(id);
     await docRef.update(
       arrayFieldName,
-      firebase.firestore.FieldValue.arrayUnion(data),
+      firebase.firestore.FieldValue.arrayUnion(value),
     );
   }
 
@@ -116,11 +138,11 @@ export class FirestoreRepository implements IRepository {
     arrayFieldName: string,
     value: any,
   ): Promise<void> {
-    const data = JSON.parse(JSON.stringify(value));
+    this.removeUndefinedProps(value);
     const docRef = await this.firestore.collection(collection).doc(id);
     await docRef.update(
       arrayFieldName,
-      firebase.firestore.FieldValue.arrayRemove(data),
+      firebase.firestore.FieldValue.arrayRemove(value),
     );
   }
 
@@ -239,12 +261,14 @@ export class FirestoreRepository implements IRepository {
   }
 
   async update<T>(collection: string, data: T): Promise<void> {
-    const dataJSON = JSON.parse(JSON.stringify(data));
-    if (dataJSON.hasOwnProperty("id")) {
-      const snapShot = this.firestore.collection(collection).doc(dataJSON.id);
+    this.removeUndefinedProps(data);
+    if ((data as any).hasOwnProperty("id")) {
+      const snapShot = this.firestore
+        .collection(collection)
+        .doc((data as any).id);
       if (snapShot) {
-        delete dataJSON.id;
-        await snapShot.update(dataJSON);
+        delete (data as any).id;
+        await snapShot.update(data);
         return Promise.resolve();
       }
     }
@@ -261,7 +285,7 @@ export class FirestoreRepository implements IRepository {
     if (snapShot) {
       let path = field as string;
       const dataJSON =
-        typeof value === "object" ? JSON.parse(JSON.stringify(value)) : value;
+        typeof value === "object" ? this.removeUndefinedProps(value) : value;
       if ((field as FieldNested<T, C>).parent) {
         path = `${(field as FieldNested<T, C>).parent}.${
           (field as FieldNested<T, C>).child
