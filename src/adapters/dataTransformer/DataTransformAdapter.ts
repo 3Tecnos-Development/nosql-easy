@@ -1,9 +1,11 @@
 /* eslint-disable no-param-reassign */
 import {
+  classToPlain,
   ClassTransformOptions,
   plainToClass,
   plainToClassFromExist,
 } from "class-transformer";
+import { IDataTransformPort } from "../../interfaces";
 
 const transformFirestoreTypes = <T>(obj: T): T => {
   Object.keys(obj).forEach((key) => {
@@ -18,8 +20,8 @@ const transformFirestoreTypes = <T>(obj: T): T => {
   return obj;
 };
 
-export class DataTransformAdapter {
-  static async transform<T, D>(
+export const DataTransformAdapter: IDataTransformPort = class {
+  static transform<T, D>(
     type: T | any,
     data: D,
     options?: ClassTransformOptions,
@@ -36,4 +38,12 @@ export class DataTransformAdapter {
     }
     return Promise.resolve(result);
   }
-}
+
+  static toObject<T>(
+    data: T,
+    options?: ClassTransformOptions,
+  ): Promise<Object> {
+    const result = classToPlain<T>(data, options);
+    return Promise.resolve(result);
+  }
+};
