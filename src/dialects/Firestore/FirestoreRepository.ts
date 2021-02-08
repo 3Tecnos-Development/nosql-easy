@@ -74,8 +74,8 @@ export class FirestoreRepository implements IRepository {
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R> {
-    this.removeUndefinedProps(data);
     const obj = await this.dataTransform.toObject(data);
+    this.removeUndefinedProps(obj);
     let response = {} as R;
 
     await this.firestore
@@ -100,8 +100,8 @@ export class FirestoreRepository implements IRepository {
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R> {
-    this.removeUndefinedProps(data);
     const obj = await this.dataTransform.toObject(data);
+    this.removeUndefinedProps(obj);
 
     if (obj.hasOwnProperty("id")) {
       await this.firestore
@@ -260,8 +260,8 @@ export class FirestoreRepository implements IRepository {
   }
 
   async update<T>(collection: string, data: T): Promise<void> {
-    this.removeUndefinedProps(data);
     const obj = await this.dataTransform.toObject(data);
+    this.removeUndefinedProps(obj);
     if (obj.hasOwnProperty("id")) {
       const snapShot = this.firestore
         .collection(collection)
@@ -287,8 +287,8 @@ export class FirestoreRepository implements IRepository {
       let obj;
 
       if (typeof value === "object") {
-        this.removeUndefinedProps(value);
         obj = await this.dataTransform.toObject(value);
+        this.removeUndefinedProps(obj);
       } else obj = value;
 
       if ((field as FieldNested<T, C>).parent) {
