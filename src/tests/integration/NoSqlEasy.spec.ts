@@ -9,6 +9,7 @@ import { DialectType } from "../../types/DialectType";
 import { NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
 import { OrderBy } from "../../types";
+import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 dotenv.config();
 
@@ -30,10 +31,21 @@ interface IFake {
   birth?: Date;
 }
 
+class Fake {
+  id?: string;
+
+  name: string;
+
+  birth: Date;
+
+  child?: Fake;
+}
+
 NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
 
 let dynamicId: string;
 let insertTestId: string;
+let insertTransformTestId: string;
 
 const mockFake = (id: string): FakeResponse => {
   return {
@@ -425,14 +437,94 @@ describe("NoSqlEasy", () => {
     expect(fakeResponse.birth).toEqual(birth);
   });
 
+  it("Testando o método insert com DataTransform", async () => {
+    const fake = {
+      name: "Pedro Paulo",
+      birth: undefined,
+    };
+    const fakeTransformed = await DataTransformAdapter.transform<Fake, unknown>(
+      Fake,
+      fake,
+    );
+    const newFake = await new NoSqlEasy().insert<Fake>(
+      "fakes",
+      fakeTransformed,
+    );
+    insertTransformTestId = newFake.id!;
+    expect(newFake.id!.length > 0).toBe(true);
+  });
+
+  it("Testando o método insertWithId com DataTransform", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const fake = {
+      id: "4334",
+      name: "João Freitas",
+      birth: new Date(),
+    };
+    const fakeTransformed = await DataTransformAdapter.transform<Fake, unknown>(
+      Fake,
+      fake,
+    );
+    const newFake = await noSqlEasy.insertWithId<Fake>(
+      "fakes",
+      fakeTransformed,
+    );
+    const exists = await noSqlEasy.exists("fakes", newFake.id!);
+    expect(exists).toBe(true);
+  });
+
+  it("Testando o método update com DataTransform", async () => {
+    const fake = {
+      id: insertTransformTestId,
+      name: "Jarilene dos Santos",
+      birth: new Date(1987, 8, 10),
+    };
+    const fakeTransformed = await DataTransformAdapter.transform<Fake, unknown>(
+      Fake,
+      fake,
+    );
+    const noSqlEasy = new NoSqlEasy();
+    await noSqlEasy.update<Fake>("fakes", fakeTransformed);
+    const fakes = await noSqlEasy.getByValue<IFake>(
+      "fakes",
+      "name",
+      "Jarilene dos Santos",
+    );
+    expect(fakes.length > 0 && fakes[0].name === "Jarilene dos Santos").toBe(
+      true,
+    );
+  });
+
+  it("Testando o método updateField com DataTransform", async () => {
+    const noSqlEasy = new NoSqlEasy();
+    const fakeChild = {
+      id: "332211",
+      name: "Enzo dos Santos",
+    };
+    const fakeChildTransformed = await DataTransformAdapter.transform<
+      Fake,
+      unknown
+    >(Fake, fakeChild);
+    await noSqlEasy.updateField<Fake>(
+      "fakes",
+      insertTransformTestId,
+      "child",
+      fakeChildTransformed,
+    );
+    const fake = await noSqlEasy.getById<Fake>("fakes", insertTransformTestId);
+    expect(fake?.child?.id === "332211").toBe(true);
+  });
+
   it("Testando o método remove", async () => {
     const noSqlEasy = new NoSqlEasy();
     await noSqlEasy.remove("fakes", insertTestId);
     await noSqlEasy.remove("fakes", dynamicId);
+    await noSqlEasy.remove("fakes", insertTransformTestId);
     await noSqlEasy.remove("fakes", "123456");
     await noSqlEasy.remove("fakes", "000000");
     await noSqlEasy.remove("fakes", "111111");
     await noSqlEasy.remove("fakes", "9876");
+    await noSqlEasy.remove("fakes", "4334");
     const [existsOne, existsSecond] = await Promise.all([
       noSqlEasy.exists("fakes", dynamicId),
       noSqlEasy.exists("fakes", "123456"),
