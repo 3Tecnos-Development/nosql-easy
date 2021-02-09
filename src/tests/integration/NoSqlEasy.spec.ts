@@ -8,7 +8,7 @@ import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
 import { NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
-import { OrderBy } from "../../types";
+import { Options, OrderBy, Where } from "../../types";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 dotenv.config();
@@ -148,12 +148,14 @@ describe("NoSqlEasy", () => {
   it("Testando o método getPaginatedCollection", async () => {
     const queryParams = { isDad: true, limit: 1, page: 1 };
     const orderBy: OrderBy<IFake> = { fieldPath: "age", direction: "desc" };
+    const options: Options<IFake> = { orderByCollection: [orderBy] };
 
     const fakes = await sut.getPaginatedCollection<IFake, FakeFilter>(
       "fakes",
       queryParams,
       FakeFilter,
-      orderBy,
+      undefined,
+      options,
     );
 
     const compare = fakes.length > 0 && fakes.length <= 1 && fakes[0].isDad;
@@ -168,16 +170,16 @@ describe("NoSqlEasy", () => {
       "fakes",
       queryParams,
       FakeFilter,
-      undefined,
       sizeCollection + 1,
+      undefined,
     );
 
     const docsPaginated = await sut.getPaginatedCollection<IFake, FakeFilter>(
       "fakes",
       queryParams,
       FakeFilter,
-      undefined,
       sizeCollection - 1,
+      undefined,
     );
 
     expect(docs?.length).toEqual(sizeCollection);
@@ -587,6 +589,30 @@ describe("NoSqlEasy", () => {
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
 
     expect(compare).toBeTruthy();
+  });
+
+  it("Testando o método getPaginatedCollection com filtros passados no whereCollection", async () => {
+    const date = new Date(2000, 10, 10);
+    const whereCollection: Where<Fake>[] = [
+      { fieldPath: "birth", operator: "<", value: date },
+    ];
+    const orderByCollection: OrderBy<Fake>[] = [
+      { fieldPath: "birth", direction: "asc" },
+    ];
+    const fakes = await sut.getPaginatedCollection<Fake, unknown>(
+      "fakes",
+      undefined,
+      undefined,
+      undefined,
+      { whereCollection, orderByCollection },
+    );
+
+    const compare = await sut.getCollection<Fake>("fakes", {
+      orderByCollection,
+      whereCollection,
+    });
+
+    expect(fakes).toEqual(compare);
   });
 
   it("Testando o método remove", async () => {
