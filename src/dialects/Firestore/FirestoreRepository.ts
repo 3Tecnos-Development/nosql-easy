@@ -11,7 +11,7 @@ import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces";
 import { IDataTransformPort, IRepository } from "../../interfaces";
-import { FieldNested, Options, OrderBy, Where } from "../../types";
+import { FieldNested, Options, Where } from "../../types";
 import { paginateArray, transformFirestoreTypes } from "../../helpers";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
@@ -340,12 +340,12 @@ export class FirestoreRepository implements IRepository {
     collection: string,
     queryParams?: any,
     FilterClass?: new () => F,
-    orderBy?: OrderBy<T>,
     minimumSizeToPaginated?: number,
+    options?: Options<T>,
     ResponseClass?: new () => R,
   ): Promise<R[]> {
     const filterCollection: Where<T>[] = [];
-    let options: Options<T> = {};
+    const newOptions: Options<T> = options || {};
 
     if (queryParams && Object.keys(queryParams).length > 0) {
       const filter = FilterClass
@@ -368,21 +368,21 @@ export class FirestoreRepository implements IRepository {
         });
         paginationEnabled = sizeCollection >= minimumSizeToPaginated;
       }
+      const isToDefineLimitAndOffset =
+        paginationEnabled && !newOptions.limit && !newOptions.offset;
 
-      if (paginationEnabled) {
+      if (isToDefineLimitAndOffset) {
         let { limit, page } = queryParams;
         limit = limit ? parseInt(limit, 10) : 10;
         page = page && page > 0 ? parseInt(page, 10) : 1;
-        options = {
-          limit,
-          offset: limit * (page - 1),
-        };
+        newOptions.limit = limit;
+        newOptions.offset = limit * (page - 1);
       }
-      options.whereCollection = filterCollection;
+      newOptions.whereCollection = newOptions.whereCollection
+        ? [...(newOptions.whereCollection as Where<T>[]), ...filterCollection]
+        : filterCollection;
     }
-
-    options.orderByCollection = orderBy ? [orderBy] : undefined;
-    return this.getCollection<T, R>(collection, options, ResponseClass);
+    return this.getCollection<T, R>(collection, newOptions, ResponseClass);
   }
 
   async getPaginatedArray<T, A, R = A>(
