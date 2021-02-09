@@ -10,15 +10,18 @@ import { MapEnv } from "map-env-node";
 import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces";
-import { IRepository } from "../../interfaces";
-import { DataTransformAdapter } from "../../adapters/dataTransformer";
+import { IDataTransformPort, IRepository } from "../../interfaces";
 import { FieldNested, Options, OrderBy, Where } from "../../types";
-import { paginateArray } from "../../helpers";
+import { paginateArray, transformFirestoreTypes } from "../../helpers";
+import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
 
+  private dataTransform: IDataTransformPort;
+
   constructor() {
+    this.dataTransform = DataTransformAdapter;
     if (!firebase.apps.length) {
       const firestoreCredential = MapEnv.get<IFirestoreCredential>(
         "FIRESTORE_CREDENTIAL",
@@ -71,19 +74,20 @@ export class FirestoreRepository implements IRepository {
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R> {
-    this.removeUndefinedProps(data);
+    const obj = await this.dataTransform.toObject(data);
+    this.removeUndefinedProps(obj);
     let response = {} as R;
 
     await this.firestore
       .collection(collection)
-      .add(data)
+      .add(obj)
       .then(async (docRef) => {
-        Object.assign(data, { id: docRef.id });
+        Object.assign(obj, { id: docRef.id });
         response = ResponseClass
-          ? await DataTransformAdapter.transform(ResponseClass, data, {
+          ? await this.dataTransform.transform(ResponseClass, obj, {
               excludeExtraneousValues: true,
             })
-          : ((data as unknown) as R);
+          : transformFirestoreTypes(obj as R);
       })
       .catch((error) => {
         throw new Error(error);
@@ -96,23 +100,20 @@ export class FirestoreRepository implements IRepository {
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R> {
-    this.removeUndefinedProps(data);
+    const obj = await this.dataTransform.toObject(data);
+    this.removeUndefinedProps(obj);
 
-    if ((data as any).hasOwnProperty("id")) {
+    if (obj.hasOwnProperty("id")) {
       await this.firestore
         .collection(collection)
-        .doc((data as any).id!)
-        .set(data);
+        .doc((obj as any).id!)
+        .set(obj);
 
       const response = ResponseClass
-        ? await DataTransformAdapter.transform<R, unknown>(
-            ResponseClass,
-            data,
-            {
-              excludeExtraneousValues: true,
-            },
-          )
-        : ((data as unknown) as R);
+        ? await this.dataTransform.transform<R, unknown>(ResponseClass, obj, {
+            excludeExtraneousValues: true,
+          })
+        : transformFirestoreTypes(obj as R);
       return response;
     }
     return Promise.reject("Id property not provided.");
@@ -189,10 +190,10 @@ export class FirestoreRepository implements IRepository {
     let elements = this.docToModel<R>(snapShot);
 
     elements = ResponseClass
-      ? await DataTransformAdapter.transform(ResponseClass, elements, {
+      ? await this.dataTransform.transform(ResponseClass, elements, {
           excludeExtraneousValues: true,
         })
-      : elements;
+      : transformFirestoreTypes(elements);
 
     return elements;
   }
@@ -207,12 +208,10 @@ export class FirestoreRepository implements IRepository {
     if (snapShot?.data()) {
       Object.assign(data, { id: snapShot?.id });
       data = ResponseClass
-        ? await DataTransformAdapter.transform(
-            ResponseClass,
-            snapShot?.data(),
-            { excludeExtraneousValues: true },
-          )
-        : await DataTransformAdapter.transform(data, snapShot?.data());
+        ? await this.dataTransform.transform(ResponseClass, snapShot?.data(), {
+            excludeExtraneousValues: true,
+          })
+        : await this.dataTransform.transform(data, snapShot?.data());
     }
     return data;
   }
@@ -230,10 +229,10 @@ export class FirestoreRepository implements IRepository {
       .get();
     let elements = this.docToModel<R>(snapShot);
     elements = ResponseClass
-      ? await DataTransformAdapter.transform(ResponseClass, elements, {
+      ? await this.dataTransform.transform(ResponseClass, elements, {
           excludeExtraneousValues: true,
         })
-      : elements;
+      : transformFirestoreTypes(elements);
     return elements;
   }
 
@@ -253,22 +252,23 @@ export class FirestoreRepository implements IRepository {
       .get();
     let elements = this.docToModel<R>(snapShot);
     elements = ResponseClass
-      ? await DataTransformAdapter.transform(ResponseClass, elements, {
+      ? await this.dataTransform.transform(ResponseClass, elements, {
           excludeExtraneousValues: true,
         })
-      : elements;
+      : transformFirestoreTypes(elements);
     return elements;
   }
 
   async update<T>(collection: string, data: T): Promise<void> {
-    this.removeUndefinedProps(data);
-    if ((data as any).hasOwnProperty("id")) {
+    const obj = await this.dataTransform.toObject(data);
+    this.removeUndefinedProps(obj);
+    if (obj.hasOwnProperty("id")) {
       const snapShot = this.firestore
         .collection(collection)
-        .doc((data as any).id);
+        .doc((obj as any).id);
       if (snapShot) {
-        delete (data as any).id;
-        await snapShot.update(data);
+        delete (obj as any).id;
+        await snapShot.update(obj);
         return Promise.resolve();
       }
     }
@@ -284,14 +284,19 @@ export class FirestoreRepository implements IRepository {
     const snapShot = this.firestore.collection(collection).doc(id);
     if (snapShot) {
       let path = field as string;
-      const dataJSON =
-        typeof value === "object" ? this.removeUndefinedProps(value) : value;
+      let obj;
+
+      if (typeof value === "object") {
+        obj = await this.dataTransform.toObject(value);
+        this.removeUndefinedProps(obj);
+      } else obj = value;
+
       if ((field as FieldNested<T, C>).parent) {
         path = `${(field as FieldNested<T, C>).parent}.${
           (field as FieldNested<T, C>).child
         }`;
       }
-      await snapShot.update(path, dataJSON);
+      await snapShot.update(path, obj);
       return Promise.resolve();
     }
     return Promise.reject();
@@ -344,7 +349,7 @@ export class FirestoreRepository implements IRepository {
 
     if (queryParams && Object.keys(queryParams).length > 0) {
       const filter = FilterClass
-        ? await DataTransformAdapter.transform<new () => F, any>(
+        ? await this.dataTransform.transform<new () => F, any>(
             FilterClass,
             queryParams,
             { excludeExtraneousValues: true, enableImplicitConversion: true },
@@ -400,14 +405,14 @@ export class FirestoreRepository implements IRepository {
         : paginateArray(fieldValue, pageNumber, pageSize);
 
     const response: R[] = ResponseClass
-      ? await DataTransformAdapter.transform(
+      ? await this.dataTransform.transform(
           ResponseClass,
           <any[]>arrayPaginated,
           {
             excludeExtraneousValues: true,
           },
         )
-      : (arrayPaginated as R[]);
+      : arrayPaginated;
 
     return response;
   }
