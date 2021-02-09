@@ -19,6 +19,7 @@ interface IFakeItem {
   itemId: string;
   value: number;
   total: number;
+  createAt?: Date;
 }
 
 interface IFake {
@@ -46,6 +47,7 @@ NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
 let dynamicId: string;
 let insertTestId: string;
 let insertTransformTestId: string;
+let insertWithDateTestId: string;
 
 const mockFake = (id: string): FakeResponse => {
   return {
@@ -66,6 +68,7 @@ const mockItems = (size: number = 10): IFakeItem[] => {
       itemId: faker.random.uuid(),
       value: faker.random.number(),
       total: faker.random.number(),
+      createAt: faker.date.recent(),
     };
     data.push(f);
   }
@@ -469,7 +472,7 @@ describe("NoSqlEasy", () => {
     const fake = {
       id: "4334",
       name: "João Freitas",
-      birth: new Date(),
+      birth: new Date(2020, 5, 15),
     };
     const fakeTransformed = await DataTransformAdapter.transform<Fake, unknown>(
       Fake,
@@ -522,16 +525,119 @@ describe("NoSqlEasy", () => {
     expect(fake?.child?.id === "332211").toBe(true);
   });
 
+  it("Testando o método getByValue retornando um documento com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const fakes = await sut.getByValue<Fake>("fakes", "name", "João Freitas");
+    expect(
+      fakes.length > 0 && typeof fakes[0].birth?.getMonth === "function",
+    ).toBeTruthy();
+  });
+
+  it("Testando o método getByValueOrdered retornando um documento com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const fakes = await sut.getByValueOrdered<Fake>(
+      "fakes",
+      "name",
+      "==",
+      "João Freitas",
+      "id",
+    );
+    const compare =
+      fakes.length > 0 && typeof fakes[0].birth.getMonth === "function";
+    expect(compare).toBeTruthy();
+  });
+
+  it("Testando o método getPaginatedCollection retornando um documento com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const queryParams = { name: "João Freitas" };
+
+    const fakes = await sut.getPaginatedCollection<Fake, FakeFilter>(
+      "fakes",
+      queryParams,
+      FakeFilter,
+    );
+
+    const compare =
+      fakes.length > 0 && typeof fakes[0].birth.getMonth === "function";
+    expect(compare).toBeTruthy();
+  });
+
+  it("Testando o método getCollection retornando um documento com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const response = await sut.getCollection<Fake>("fakes", undefined);
+
+    const fake = response.find((i) => i.id === "4334");
+    const compare = fake && typeof fake.birth.getMonth === "function";
+
+    expect(compare).toBeTruthy();
+  });
+
+  it("Testando o método getPaginatedArray retornando um array com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const pageSize = 5;
+    const pageNumber = 1;
+
+    const arrayPaginated = await sut.getPaginatedArray<IFake, IFakeItem>(
+      "fakes",
+      "123456",
+      "items",
+      pageNumber,
+      pageSize,
+    );
+
+    const compare =
+      arrayPaginated.length > 0 &&
+      typeof arrayPaginated[0].createAt?.getMonth === "function";
+
+    expect(compare).toBeTruthy();
+  });
+
+  it("Testando o método insert retornando um array com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const fake: IFake = {
+      name: "Jubileldo",
+      age: 36,
+      email: "jubi@3tecnos.com.br",
+      items: [],
+      birth: new Date(),
+    };
+    const newFake = await sut.insert<IFake>("fakes", fake);
+    insertWithDateTestId = newFake.id!;
+
+    const compare = newFake && typeof newFake.birth?.getMonth === "function";
+
+    expect(compare).toBeTruthy();
+  });
+
+  it("Testando o método insertWithId retornando um array com uma propriedade do tipo Date", async () => {
+    const sut = makeSut();
+    const fake: IFake = {
+      id: "222",
+      name: "Tiago",
+      age: 67,
+      email: "tiago@3tecnos.com.br",
+      isDad: true,
+      items: [],
+      birth: new Date(),
+    };
+    const newFake = await sut.insertWithId<IFake>("fakes", fake);
+    const compare = newFake && typeof newFake.birth?.getMonth === "function";
+
+    expect(compare).toBeTruthy();
+  });
+
   it("Testando o método remove", async () => {
     const sut = makeSut();
     await sut.remove("fakes", insertTestId);
     await sut.remove("fakes", dynamicId);
     await sut.remove("fakes", insertTransformTestId);
+    await sut.remove("fakes", insertWithDateTestId);
     await sut.remove("fakes", "123456");
     await sut.remove("fakes", "000000");
     await sut.remove("fakes", "111111");
     await sut.remove("fakes", "9876");
     await sut.remove("fakes", "4334");
+    await sut.remove("fakes", "222");
     const [existsOne, existsSecond] = await Promise.all([
       sut.exists("fakes", dynamicId),
       sut.exists("fakes", "123456"),
