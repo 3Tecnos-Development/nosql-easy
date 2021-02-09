@@ -12,7 +12,7 @@ import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces";
 import { IDataTransformPort, IRepository } from "../../interfaces";
 import { FieldNested, Options, OrderBy, Where } from "../../types";
-import { paginateArray } from "../../helpers";
+import { paginateArray, transformFirestoreTypes } from "../../helpers";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 export class FirestoreRepository implements IRepository {
@@ -87,7 +87,7 @@ export class FirestoreRepository implements IRepository {
           ? await this.dataTransform.transform(ResponseClass, obj, {
               excludeExtraneousValues: true,
             })
-          : ((obj as unknown) as R);
+          : transformFirestoreTypes(obj as R);
       })
       .catch((error) => {
         throw new Error(error);
@@ -113,7 +113,7 @@ export class FirestoreRepository implements IRepository {
         ? await this.dataTransform.transform<R, unknown>(ResponseClass, obj, {
             excludeExtraneousValues: true,
           })
-        : (obj as R);
+        : transformFirestoreTypes(obj as R);
       return response;
     }
     return Promise.reject("Id property not provided.");
@@ -193,7 +193,7 @@ export class FirestoreRepository implements IRepository {
       ? await this.dataTransform.transform(ResponseClass, elements, {
           excludeExtraneousValues: true,
         })
-      : elements;
+      : transformFirestoreTypes(elements);
 
     return elements;
   }
@@ -232,7 +232,7 @@ export class FirestoreRepository implements IRepository {
       ? await this.dataTransform.transform(ResponseClass, elements, {
           excludeExtraneousValues: true,
         })
-      : elements;
+      : transformFirestoreTypes(elements);
     return elements;
   }
 
@@ -255,7 +255,7 @@ export class FirestoreRepository implements IRepository {
       ? await this.dataTransform.transform(ResponseClass, elements, {
           excludeExtraneousValues: true,
         })
-      : elements;
+      : transformFirestoreTypes(elements);
     return elements;
   }
 
@@ -412,7 +412,7 @@ export class FirestoreRepository implements IRepository {
             excludeExtraneousValues: true,
           },
         )
-      : (arrayPaginated as R[]);
+      : arrayPaginated;
 
     return response;
   }
