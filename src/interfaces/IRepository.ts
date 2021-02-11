@@ -36,8 +36,8 @@ export interface IRepository {
     collection: string,
     queryParams?: any,
     FilterClass?: new () => F,
-    orderBy?: OrderBy<T>,
     minimumSizeToPaginated?: number,
+    options?: Options<T>,
     ResponseClass?: new () => R,
   ): Promise<R[]>;
   getById<T, R = T>(
