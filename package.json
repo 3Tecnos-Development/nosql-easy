@@ -1,6 +1,6 @@
 {
   "name": "nosql-easy",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "This library aims to facilitate access to a non-relational database",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
