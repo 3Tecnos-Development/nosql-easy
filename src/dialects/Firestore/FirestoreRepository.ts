@@ -30,7 +30,7 @@ export class FirestoreRepository implements IRepository {
         credential: firebase.credential.cert({
           projectId: firestoreCredential.credential.projectId,
           clientEmail: firestoreCredential.credential.clientEmail,
-          privateKey: firestoreCredential.credential.privateKey,
+          privateKey: firestoreCredential.credential.privateKey.replace(/\\n/g, "\n"),
         }),
         databaseURL: firestoreCredential.databaseURL,
       });
