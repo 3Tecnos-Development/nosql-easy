@@ -9,6 +9,7 @@
 import { MapEnv } from "map-env-node";
 import firebase, { firestore } from "firebase-admin";
 import { DocumentData } from "@firebase/firestore-types";
+
 import { IFirestoreCredential } from "./interfaces";
 import { IDataTransformPort, IRepository } from "../../interfaces";
 import { FieldNested, Options, Where } from "../../types";
@@ -20,22 +21,48 @@ export class FirestoreRepository implements IRepository {
 
   private dataTransform: IDataTransformPort;
 
-  constructor() {
-    this.dataTransform = DataTransformAdapter;
-    if (!firebase.apps.length) {
+  private getCredentials = (): IFirestoreCredential => {
+    let projectId: string;
+    let clientEmail: string;
+    let privateKey: string;
+    let databaseURL: string;
+
+    if (process.env.FIRESTORE_CREDENTIAL) {
       const firestoreCredential = MapEnv.get<IFirestoreCredential>(
         "FIRESTORE_CREDENTIAL",
       );
-      const {
+
+      projectId = firestoreCredential.credential.projectId;
+      clientEmail = firestoreCredential.credential.clientEmail;
+      privateKey = firestoreCredential.credential.privateKey;
+      databaseURL = firestoreCredential.databaseURL;
+    } else {
+      projectId = process.env.FIRESTORE_PROJECT_ID!;
+      clientEmail = process.env.FIRESTORE_CLIENT_EMAIL!;
+      privateKey = process.env.FIRESTORE_PRIVATE_KEY!;
+      databaseURL = process.env.FIRESTORE_DATABASE_URL!;
+    }
+
+    return {
+      credential: {
         projectId,
         clientEmail,
-        privateKey,
-      } = firestoreCredential.credential;
+        privateKey: privateKey.replace(/\\n/g, "\n"),
+      },
+      databaseURL,
+    };
+  };
+
+  constructor() {
+    this.dataTransform = DataTransformAdapter;
+    if (!firebase.apps.length) {
+      const firestoreCredential = this.getCredentials();
+      const { credential } = firestoreCredential;
       firebase.initializeApp({
         credential: firebase.credential.cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, "\n"),
+          projectId: credential.projectId,
+          clientEmail: credential.clientEmail,
+          privateKey: credential.privateKey,
         }),
         databaseURL: firestoreCredential.databaseURL,
       });
