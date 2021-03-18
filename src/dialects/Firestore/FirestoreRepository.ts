@@ -39,7 +39,15 @@ export class FirestoreRepository implements IRepository {
     } else {
       projectId = process.env.FIRESTORE_PROJECT_ID!;
       clientEmail = process.env.FIRESTORE_CLIENT_EMAIL!;
-      privateKey = process.env.FIRESTORE_PRIVATE_KEY!;
+      if (process.env.FIRESTORE_PRIVATE_KEY_BASE64) {
+        const privateKeyB64 = Buffer.from(
+          process.env.FIRESTORE_PRIVATE_KEY_BASE64,
+          "base64",
+        );
+        privateKey = privateKeyB64.toString("utf8");
+      } else {
+        privateKey = process.env.FIRESTORE_PRIVATE_KEY!;
+      }
       databaseURL = process.env.FIRESTORE_DATABASE_URL!;
     }
 
