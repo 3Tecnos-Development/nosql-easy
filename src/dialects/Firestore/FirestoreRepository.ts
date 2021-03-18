@@ -26,11 +26,16 @@ export class FirestoreRepository implements IRepository {
       const firestoreCredential = MapEnv.get<IFirestoreCredential>(
         "FIRESTORE_CREDENTIAL",
       );
+      const {
+        projectId,
+        clientEmail,
+        privateKey,
+      } = firestoreCredential.credential;
       firebase.initializeApp({
         credential: firebase.credential.cert({
-          projectId: firestoreCredential.credential.projectId,
-          clientEmail: firestoreCredential.credential.clientEmail,
-          privateKey: firestoreCredential.credential.privateKey.replace(/\\n/g, "\n"),
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, "\n"),
         }),
         databaseURL: firestoreCredential.databaseURL,
       });
