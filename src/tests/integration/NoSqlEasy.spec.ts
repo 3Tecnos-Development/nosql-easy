@@ -117,6 +117,11 @@ describe("NoSqlEasy", () => {
     expect(newFake).not.toHaveProperty("birth");
   });
 
+  it("Testando o método getById - should be return undefined", async () => {
+    const fake = await sut.getById<IFake>("fakes", "0");
+    expect(fake).toBe(undefined);
+  });
+
   it("Testando o método getById", async () => {
     const fake = await sut.getById<IFake>("fakes", "123456");
     expect(fake.id === "123456").toBeTruthy();

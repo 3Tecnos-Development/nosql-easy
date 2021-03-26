@@ -13,7 +13,11 @@ import { DocumentData } from "@firebase/firestore-types";
 import { IFirestoreCredential } from "./interfaces";
 import { IDataTransformPort, IRepository } from "../../interfaces";
 import { FieldNested, Options, Where } from "../../types";
-import { paginateArray, transformFirestoreTypes } from "../../helpers";
+import {
+  emptyToUndefined,
+  paginateArray,
+  transformFirestoreTypes,
+} from "../../helpers";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 export class FirestoreRepository implements IRepository {
@@ -132,7 +136,7 @@ export class FirestoreRepository implements IRepository {
       .catch((error) => {
         throw new Error(error);
       });
-    return response;
+    return emptyToUndefined(response);
   }
 
   async insertWithId<T, R = T>(
@@ -253,7 +257,7 @@ export class FirestoreRepository implements IRepository {
           })
         : await this.dataTransform.transform(data, snapShot?.data());
     }
-    return data;
+    return emptyToUndefined(data);
   }
 
   async getByValue<T, R = T>(
