@@ -41,7 +41,7 @@
     "dotenv": "^8.2.0",
     "faker": "^5.1.0",
     "firebase": "^7.16.1",
-    "firebase-admin": "^9.0.0",
+    "firebase-admin": "^9.6.0",
     "map-env-node": "^0.1.7"
   }
 }
