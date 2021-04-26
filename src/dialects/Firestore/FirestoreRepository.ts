@@ -369,18 +369,17 @@ export class FirestoreRepository implements IRepository {
         }`;
       }
 
-      const element: UpdateData = {};
+      await this.firestore.runTransaction(async (t) => {
+        const element: UpdateData = {};
 
-      const elementToRemove = firestore.FieldValue.arrayRemove(prevValue);
-      element[path] = elementToRemove;
-      console.log("elementToRemove", prevValue);
+        const elementToRemove = firestore.FieldValue.arrayRemove(prevValue);
+        element[path] = elementToRemove;
+        await t.update(snapShot, element);
 
-      await snapShot.update(element);
+        element[path] = firestore.FieldValue.arrayUnion(obj);
 
-      element[path] = firestore.FieldValue.arrayUnion(obj);
-      console.log("elementToAdd", obj);
-
-      await snapShot.update(element);
+        await t.update(snapShot, element);
+      });
 
       return Promise.resolve();
     }
