@@ -68,6 +68,13 @@ export interface IRepository {
     field: keyof T | FieldNested<T, C>,
     value: any,
   ): Promise<void>;
+  updateArray<T, C = any>(
+    collection: string,
+    id: string,
+    field: keyof T | FieldNested<T, C>,
+    prevValue: any,
+    newValue: any,
+  ): Promise<void>;
   remove(collection: string, id: string): Promise<void>;
   exists(collection: string, id: string): Promise<boolean>;
   getSizeCollection<T>(

@@ -165,6 +165,22 @@ export class NoSqlEasy implements IRepository {
     return this.repository.updateField(collection, id, field, value);
   }
 
+  updateArray<T, C = any>(
+    collection: string,
+    id: string,
+    field: keyof T | FieldNested<T, C>,
+    prevValue: any,
+    newValue: any,
+  ) {
+    return this.repository.updateArray(
+      collection,
+      id,
+      field,
+      prevValue,
+      newValue,
+    );
+  }
+
   remove(collection: string, id: string): Promise<void> {
     return this.repository.remove(collection, id);
   }

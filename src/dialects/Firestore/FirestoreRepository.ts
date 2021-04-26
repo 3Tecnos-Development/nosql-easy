@@ -8,7 +8,7 @@
 /* eslint-disable import/no-unresolved */
 import { MapEnv } from "map-env-node";
 import firebase, { firestore } from "firebase-admin";
-import { DocumentData } from "@firebase/firestore-types";
+import { DocumentData, UpdateData } from "@firebase/firestore-types";
 
 import { IFirestoreCredential } from "./interfaces";
 import { IDataTransformPort, IRepository } from "../../interfaces";
@@ -341,6 +341,47 @@ export class FirestoreRepository implements IRepository {
         }`;
       }
       await snapShot.update(path, obj);
+      return Promise.resolve();
+    }
+    return Promise.reject();
+  }
+
+  async updateArray<T, C = any>(
+    collection: string,
+    id: string,
+    field: keyof T | FieldNested<T, C>,
+    prevValue: any,
+    newValue: any,
+  ): Promise<void> {
+    const snapShot = this.firestore.collection(collection).doc(id);
+    if (snapShot) {
+      let path = field as string;
+      let obj: Object;
+
+      if (typeof newValue === "object") {
+        obj = await this.dataTransform.toObject(newValue);
+        this.removeUndefinedProps(obj);
+      } else obj = newValue;
+
+      if ((field as FieldNested<T, C>).parent) {
+        path = `${(field as FieldNested<T, C>).parent}.${
+          (field as FieldNested<T, C>).child
+        }`;
+      }
+
+      const element: UpdateData = {};
+
+      const elementToRemove = firestore.FieldValue.arrayRemove(prevValue);
+      element[path] = elementToRemove;
+      console.log("elementToRemove", prevValue);
+
+      await snapShot.update(element);
+
+      element[path] = firestore.FieldValue.arrayUnion(obj);
+      console.log("elementToAdd", obj);
+
+      await snapShot.update(element);
+
       return Promise.resolve();
     }
     return Promise.reject();
