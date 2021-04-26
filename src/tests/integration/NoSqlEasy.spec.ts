@@ -226,6 +226,35 @@ describe("NoSqlEasy", () => {
     expect(fakes.length > 0 && fakes[0].name === "Lindsay").toBeTruthy();
   });
 
+  it("Testando o método updateArray", async () => {
+    const prevFake = await sut.getByValue<IFake>(
+      "fakes",
+      "email",
+      "jesus@3tecnos.com.br",
+    );
+
+    const newFake = {
+      ...prevFake[0].items[0],
+      itemId: "updateArray",
+    };
+
+    await sut.updateArray<IFake>(
+      "fakes",
+      "123456",
+      "items",
+      prevFake[0].items[0],
+      newFake,
+    );
+
+    const fakes = await sut.getByValue<IFake>(
+      "fakes",
+      "email",
+      "jesus@3tecnos.com.br",
+    );
+
+    expect(fakes[0].items.some((i) => i.itemId === "updateArray")).toBeTruthy();
+  });
+
   it("Testando o método insert com o retorno customizado", async () => {
     const fake: IFake = {
       name: "Moises",
