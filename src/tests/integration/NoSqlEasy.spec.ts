@@ -8,7 +8,7 @@ import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
 import { NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
-import { Options, OrderBy, Where } from "../../types";
+import { Filter, Options, OrderBy, Where } from "../../types";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 dotenv.config();
@@ -48,6 +48,7 @@ let dynamicId: string;
 let insertTestId: string;
 let insertTransformTestId: string;
 let insertWithDateTestId: string;
+const idsToRemove: string[] = [];
 
 const mockFake = (id: string): FakeResponse => {
   return {
@@ -82,6 +83,12 @@ const makeSut = (): NoSqlEasy => {
 
 describe("NoSqlEasy", () => {
   const sut = makeSut();
+
+  afterEach(async () => {
+    const promises = idsToRemove.map((id) => sut.remove("fakes", id));
+    await Promise.all(promises);
+  });
+
   it("Testando o método insert", async () => {
     const fake: IFake = {
       name: "Lindsay",
@@ -277,6 +284,70 @@ describe("NoSqlEasy", () => {
     expect(objectResponse).toEqual(toCompare);
   });
 
+  it("Testando o método getCollection com filtros", async () => {
+    const fakeMussum: IFake = {
+      name: "Mussum",
+      age: 32,
+      email: "mussum@3tecnos.com.br",
+      items: [],
+      birth: new Date(1980, 10, 10),
+    };
+
+    const fakeDidi: IFake = {
+      name: "Didi",
+      age: 56,
+      email: "mussum@3tecnos.com.br",
+      items: [],
+      birth: new Date(1940, 10, 10),
+    };
+
+    const fakeZacarias: IFake = {
+      name: "Zacarias",
+      age: 40,
+      email: "zacas@3tecnos.com.br",
+      items: [],
+      birth: new Date(1970, 10, 10),
+    };
+
+    const mussum = await sut.insert<IFake>("fakes", fakeMussum);
+    const zacarias = await sut.insert<IFake>("fakes", fakeZacarias);
+    const didi = await sut.insert<IFake>("fakes", fakeDidi);
+
+    idsToRemove.push(mussum.id!, zacarias.id!, didi.id!);
+
+    const filter: Filter<IFake>[] = [
+      { field: "age", operator: ">=", value: 30 },
+      { field: "age", operator: "<=", value: 60 },
+      {
+        field: "birth",
+        operator: "range",
+        value: [new Date(1940, 10, 9), new Date(2020, 10, 10)],
+      },
+    ];
+    const where: Where<IFake>[] = [
+      { fieldPath: "age", operator: ">", value: 42 },
+    ];
+    const orderBy: OrderBy<IFake>[] = [{ fieldPath: "age", direction: "desc" }];
+    const options: Options<IFake> = {
+      filterCollection: filter,
+      whereCollection: where,
+      orderByCollection: orderBy,
+      // offset: 1,
+      // limit: 2,
+    };
+    let response = [];
+    let responseIds: string[] = [];
+    let toCompare: string[] = [];
+    try {
+      response = await sut.getCollection<IFake>("fakes", options);
+      responseIds = response.map((r) => r.id!);
+      toCompare = [didi.id!];
+    } catch (ex) {
+      console.log("test error: ", ex);
+    }
+    expect(responseIds).toEqual(toCompare);
+  });
+
   it("Testando o método getPaginatedCollection com o retorno customizado", async () => {
     const response = await sut.getPaginatedCollection(
       "fakes",
@@ -413,7 +484,7 @@ describe("NoSqlEasy", () => {
         pageNumber,
         pageSize,
       ),
-    ).rejects.toEqual("The field is not an array.");
+    ).rejects.toEqual(new Error("The field is not an array."));
   });
 
   it("Testando o retorno de documento com propriedade do tipo Date", async () => {
