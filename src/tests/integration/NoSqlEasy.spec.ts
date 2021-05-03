@@ -4,9 +4,10 @@
 import "reflect-metadata";
 import dotenv from "dotenv";
 import faker from "faker";
+import { MapEnv } from "map-env-node";
 import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
-import { NoSqlEasy } from "../../index";
+import { IFirestoreCredential, NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
 import { Options, OrderBy, Where } from "../../types";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
@@ -82,6 +83,15 @@ const makeSut = (): NoSqlEasy => {
 
 describe("NoSqlEasy", () => {
   const sut = makeSut();
+
+  const partOfPrivateKey = MapEnv.get<IFirestoreCredential>(
+    "FIRESTORE_CREDENTIAL",
+  ).credential.privateKey.substr(30, 5);
+
+  const dynamicallyCollection = `fakes-${partOfPrivateKey}`;
+
+  console.info("collection name -> ", dynamicallyCollection);
+
   it("Testando o método insert", async () => {
     const fake: IFake = {
       name: "Lindsay",
@@ -90,14 +100,14 @@ describe("NoSqlEasy", () => {
       items: [],
       birth: undefined,
     };
-    const newFake = await sut.insert<IFake>("fakes", fake);
+    const newFake = await sut.insert<IFake>(dynamicallyCollection, fake);
     dynamicId = newFake.id!;
     expect(newFake.id!.length > 0).toBe(true);
     expect(newFake).not.toHaveProperty("birth");
   });
 
   it("Testando o método exists", async () => {
-    const exists = await sut.exists("fakes", dynamicId);
+    const exists = await sut.exists(dynamicallyCollection, dynamicId);
     expect(exists).toBe(true);
   });
 
@@ -111,25 +121,25 @@ describe("NoSqlEasy", () => {
       items: mockItems(20),
       birth: undefined,
     };
-    const newFake = await sut.insertWithId<IFake>("fakes", fake);
-    const exists = await sut.exists("fakes", newFake.id!);
+    const newFake = await sut.insertWithId<IFake>(dynamicallyCollection, fake);
+    const exists = await sut.exists(dynamicallyCollection, newFake.id!);
     expect(exists).toBe(true);
     expect(newFake).not.toHaveProperty("birth");
   });
 
   it("Testando o método getById - should be return undefined", async () => {
-    const fake = await sut.getById<IFake>("fakes", "0");
+    const fake = await sut.getById<IFake>(dynamicallyCollection, "0");
     expect(fake).toBe(undefined);
   });
 
   it("Testando o método getById", async () => {
-    const fake = await sut.getById<IFake>("fakes", "123456");
+    const fake = await sut.getById<IFake>(dynamicallyCollection, "123456");
     expect(fake.id === "123456").toBeTruthy();
   });
 
   it("Testando o método getByValue", async () => {
     const fakes = await sut.getByValue<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "jesus@3tecnos.com.br",
     );
@@ -138,7 +148,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getByValueOrdered", async () => {
     const fakes = await sut.getByValueOrdered<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "age",
       ">=",
       30,
@@ -156,7 +166,7 @@ describe("NoSqlEasy", () => {
     const options: Options<IFake> = { orderByCollection: [orderBy] };
 
     const fakes = await sut.getPaginatedCollection<IFake, FakeFilter>(
-      "fakes",
+      dynamicallyCollection,
       queryParams,
       FakeFilter,
       undefined,
@@ -169,10 +179,10 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getPaginatedCollection com o parâmetro minimumSizeToPaginated", async () => {
     const queryParams = { limit: 1, page: 1 };
-    const sizeCollection = await sut.getSizeCollection("fakes");
+    const sizeCollection = await sut.getSizeCollection(dynamicallyCollection);
 
     const docs = await sut.getPaginatedCollection<IFake, FakeFilter>(
-      "fakes",
+      dynamicallyCollection,
       queryParams,
       FakeFilter,
       sizeCollection + 1,
@@ -180,7 +190,7 @@ describe("NoSqlEasy", () => {
     );
 
     const docsPaginated = await sut.getPaginatedCollection<IFake, FakeFilter>(
-      "fakes",
+      dynamicallyCollection,
       queryParams,
       FakeFilter,
       sizeCollection - 1,
@@ -201,9 +211,9 @@ describe("NoSqlEasy", () => {
       items: [],
       birth: undefined,
     };
-    await sut.update<IFake>("fakes", fakeDad);
+    await sut.update<IFake>(dynamicallyCollection, fakeDad);
     const fakes = await sut.getByValue<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "lindsay@3tecnos.com.br",
     );
@@ -213,13 +223,13 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método updateField", async () => {
     await sut.updateField<IFake>(
-      "fakes",
+      dynamicallyCollection,
       dynamicId,
       "email",
       "lindsay.3tecnos@gmail.com",
     );
     const fakes = await sut.getByValue<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "lindsay.3tecnos@gmail.com",
     );
@@ -228,7 +238,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método updateArray", async () => {
     const prevFake = await sut.getByValue<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "jesus@3tecnos.com.br",
     );
@@ -239,7 +249,7 @@ describe("NoSqlEasy", () => {
     };
 
     await sut.updateArray<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "123456",
       "items",
       prevFake[0].items[0],
@@ -247,7 +257,7 @@ describe("NoSqlEasy", () => {
     );
 
     const fakes = await sut.getByValue<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "jesus@3tecnos.com.br",
     );
@@ -264,7 +274,11 @@ describe("NoSqlEasy", () => {
       birth: new Date(1988, 10, 10),
     };
 
-    const response = await sut.insert("fakes", fake, FakeResponse);
+    const response = await sut.insert(
+      dynamicallyCollection,
+      fake,
+      FakeResponse,
+    );
     insertTestId = response.id;
 
     const toCompare: FakeResponse = {
@@ -284,7 +298,11 @@ describe("NoSqlEasy", () => {
       items: mockItems(20),
       birth: new Date(1988, 10, 10),
     };
-    const response = await sut.insertWithId("fakes", fake, FakeResponse);
+    const response = await sut.insertWithId(
+      dynamicallyCollection,
+      fake,
+      FakeResponse,
+    );
 
     const toCompare: FakeResponse = {
       id: response.id,
@@ -295,7 +313,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getCollection com o retorno customizado", async () => {
     const response = await sut.getCollection<FakeResponse>(
-      "fakes",
+      dynamicallyCollection,
       undefined,
       FakeResponse,
     );
@@ -308,7 +326,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getPaginatedCollection com o retorno customizado", async () => {
     const response = await sut.getPaginatedCollection(
-      "fakes",
+      dynamicallyCollection,
       {
         limit: 5,
         page: 1,
@@ -326,7 +344,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getByValue com retorno customizado", async () => {
     const response = await sut.getByValue<IFake, FakeResponse>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "jesus@3tecnos.com.br",
       undefined,
@@ -340,7 +358,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getByValueOrdered com retorno customizado", async () => {
     const response = await sut.getByValueOrdered<IFake, FakeResponse>(
-      "fakes",
+      dynamicallyCollection,
       "email",
       "==",
       "jesus@3tecnos.com.br",
@@ -356,7 +374,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getById com retorno customizado", async () => {
     const response = await sut.getById<IFake, FakeResponse>(
-      "fakes",
+      dynamicallyCollection,
       "123456",
       FakeResponse,
     );
@@ -370,7 +388,15 @@ describe("NoSqlEasy", () => {
       IFake,
       IFakeItem,
       FakeItemResponse
-    >("fakes", "123456", "items", 1, 5, undefined, FakeItemResponse);
+    >(
+      dynamicallyCollection,
+      "123456",
+      "items",
+      1,
+      5,
+      undefined,
+      FakeItemResponse,
+    );
 
     const toCompare = mockFakeItem(response[0].value);
 
@@ -383,14 +409,14 @@ describe("NoSqlEasy", () => {
     const lastIndex = pageNumber * pageSize - 1;
 
     const arrayPaginated = await sut.getPaginatedArray<IFake, IFakeItem>(
-      "fakes",
+      dynamicallyCollection,
       "123456",
       "items",
       pageNumber,
       pageSize,
     );
 
-    const fake = await sut.getById<IFake>("fakes", "123456");
+    const fake = await sut.getById<IFake>(dynamicallyCollection, "123456");
     const toCompare = fake.items;
 
     expect(toCompare).toEqual(expect.arrayContaining(arrayPaginated));
@@ -404,11 +430,11 @@ describe("NoSqlEasy", () => {
     const pageSize = 5;
     const pageNumber = 1;
 
-    const fake = await sut.getById<IFake>("fakes", "123456");
+    const fake = await sut.getById<IFake>(dynamicallyCollection, "123456");
     const toCompare = fake.items;
 
     const array = await sut.getPaginatedArray<IFake, IFakeItem>(
-      "fakes",
+      dynamicallyCollection,
       "123456",
       "items",
       pageNumber,
@@ -417,7 +443,7 @@ describe("NoSqlEasy", () => {
     );
 
     const arrayPaginated = await sut.getPaginatedArray<IFake, IFakeItem>(
-      "fakes",
+      dynamicallyCollection,
       "123456",
       "items",
       pageNumber,
@@ -436,7 +462,7 @@ describe("NoSqlEasy", () => {
 
     expect(
       sut.getPaginatedArray<IFake, IFakeItem>(
-        "fakes",
+        dynamicallyCollection,
         "123456",
         "email",
         pageNumber,
@@ -456,9 +482,12 @@ describe("NoSqlEasy", () => {
       items: [],
       birth,
     };
-    await sut.insertWithId<IFake>("fakes", fake);
+    await sut.insertWithId<IFake>(dynamicallyCollection, fake);
 
-    const fakeResponse = await sut.getById<IFake>("fakes", "9876");
+    const fakeResponse = await sut.getById<IFake>(
+      dynamicallyCollection,
+      "9876",
+    );
     expect(fakeResponse.birth).toEqual(birth);
   });
 
@@ -471,7 +500,10 @@ describe("NoSqlEasy", () => {
       Fake,
       fake,
     );
-    const newFake = await sut.insert<Fake>("fakes", fakeTransformed);
+    const newFake = await sut.insert<Fake>(
+      dynamicallyCollection,
+      fakeTransformed,
+    );
     insertTransformTestId = newFake.id!;
     expect(newFake.id!.length > 0).toBeTruthy();
   });
@@ -486,8 +518,11 @@ describe("NoSqlEasy", () => {
       Fake,
       fake,
     );
-    const newFake = await sut.insertWithId<Fake>("fakes", fakeTransformed);
-    const exists = await sut.exists("fakes", newFake.id!);
+    const newFake = await sut.insertWithId<Fake>(
+      dynamicallyCollection,
+      fakeTransformed,
+    );
+    const exists = await sut.exists(dynamicallyCollection, newFake.id!);
     expect(exists).toBeTruthy();
   });
 
@@ -501,9 +536,9 @@ describe("NoSqlEasy", () => {
       Fake,
       fake,
     );
-    await sut.update<Fake>("fakes", fakeTransformed);
+    await sut.update<Fake>(dynamicallyCollection, fakeTransformed);
     const fakes = await sut.getByValue<IFake>(
-      "fakes",
+      dynamicallyCollection,
       "name",
       "Jarilene dos Santos",
     );
@@ -522,17 +557,24 @@ describe("NoSqlEasy", () => {
       unknown
     >(Fake, fakeChild);
     await sut.updateField<Fake>(
-      "fakes",
+      dynamicallyCollection,
       insertTransformTestId,
       "child",
       fakeChildTransformed,
     );
-    const fake = await sut.getById<Fake>("fakes", insertTransformTestId);
+    const fake = await sut.getById<Fake>(
+      dynamicallyCollection,
+      insertTransformTestId,
+    );
     expect(fake?.child?.id === "332211").toBeTruthy();
   });
 
   it("Testando o método getByValue retornando um documento com uma propriedade do tipo Date", async () => {
-    const fakes = await sut.getByValue<Fake>("fakes", "name", "João Freitas");
+    const fakes = await sut.getByValue<Fake>(
+      dynamicallyCollection,
+      "name",
+      "João Freitas",
+    );
     expect(
       fakes.length > 0 && typeof fakes[0].birth?.getMonth === "function",
     ).toBeTruthy();
@@ -540,7 +582,7 @@ describe("NoSqlEasy", () => {
 
   it("Testando o método getByValueOrdered retornando um documento com uma propriedade do tipo Date", async () => {
     const fakes = await sut.getByValueOrdered<Fake>(
-      "fakes",
+      dynamicallyCollection,
       "name",
       "==",
       "João Freitas",
@@ -555,7 +597,7 @@ describe("NoSqlEasy", () => {
     const queryParams = { name: "João Freitas" };
 
     const fakes = await sut.getPaginatedCollection<Fake, FakeFilter>(
-      "fakes",
+      dynamicallyCollection,
       queryParams,
       FakeFilter,
     );
@@ -566,7 +608,10 @@ describe("NoSqlEasy", () => {
   });
 
   it("Testando o método getCollection retornando um documento com uma propriedade do tipo Date", async () => {
-    const response = await sut.getCollection<Fake>("fakes", undefined);
+    const response = await sut.getCollection<Fake>(
+      dynamicallyCollection,
+      undefined,
+    );
 
     const fake = response.find((i) => i.id === "4334");
     const compare = fake && typeof fake.birth.getMonth === "function";
@@ -579,7 +624,7 @@ describe("NoSqlEasy", () => {
     const pageNumber = 1;
 
     const arrayPaginated = await sut.getPaginatedArray<IFake, IFakeItem>(
-      "fakes",
+      dynamicallyCollection,
       "123456",
       "items",
       pageNumber,
@@ -601,7 +646,7 @@ describe("NoSqlEasy", () => {
       items: [],
       birth: new Date(),
     };
-    const newFake = await sut.insert<IFake>("fakes", fake);
+    const newFake = await sut.insert<IFake>(dynamicallyCollection, fake);
     insertWithDateTestId = newFake.id!;
 
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
@@ -619,7 +664,7 @@ describe("NoSqlEasy", () => {
       items: [],
       birth: new Date(),
     };
-    const newFake = await sut.insertWithId<IFake>("fakes", fake);
+    const newFake = await sut.insertWithId<IFake>(dynamicallyCollection, fake);
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
 
     expect(compare).toBeTruthy();
@@ -634,14 +679,14 @@ describe("NoSqlEasy", () => {
       { fieldPath: "birth", direction: "asc" },
     ];
     const fakes = await sut.getPaginatedCollection<Fake, unknown>(
-      "fakes",
+      dynamicallyCollection,
       undefined,
       undefined,
       undefined,
       { whereCollection, orderByCollection },
     );
 
-    const compare = await sut.getCollection<Fake>("fakes", {
+    const compare = await sut.getCollection<Fake>(dynamicallyCollection, {
       orderByCollection,
       whereCollection,
     });
@@ -650,20 +695,72 @@ describe("NoSqlEasy", () => {
   });
 
   it("Testando o método remove", async () => {
-    await sut.remove("fakes", insertTestId);
-    await sut.remove("fakes", dynamicId);
-    await sut.remove("fakes", insertTransformTestId);
-    await sut.remove("fakes", insertWithDateTestId);
-    await sut.remove("fakes", "123456");
-    await sut.remove("fakes", "000000");
-    await sut.remove("fakes", "111111");
-    await sut.remove("fakes", "9876");
-    await sut.remove("fakes", "4334");
-    await sut.remove("fakes", "222");
+    await sut.remove(dynamicallyCollection, insertTestId);
+    await sut.remove(dynamicallyCollection, dynamicId);
+    await sut.remove(dynamicallyCollection, insertTransformTestId);
+    await sut.remove(dynamicallyCollection, insertWithDateTestId);
+    await sut.remove(dynamicallyCollection, "123456");
+    await sut.remove(dynamicallyCollection, "000000");
+    await sut.remove(dynamicallyCollection, "111111");
+    await sut.remove(dynamicallyCollection, "9876");
+    await sut.remove(dynamicallyCollection, "4334");
+    await sut.remove(dynamicallyCollection, "222");
     const [existsOne, existsSecond] = await Promise.all([
-      sut.exists("fakes", dynamicId),
-      sut.exists("fakes", "123456"),
+      sut.exists(dynamicallyCollection, dynamicId),
+      sut.exists(dynamicallyCollection, "123456"),
     ]);
     expect(existsOne && existsSecond).toBeFalsy();
+  });
+
+  it("Should be execute the transaction with success", async () => {
+    const fake: IFake = {
+      id: "23021990",
+      name: "Paulo Henrique",
+      age: 31,
+      email: "paulohenrique@3tecnos.com.br",
+      items: [],
+      birth: undefined,
+    };
+
+    sut.startTransaction();
+
+    await sut.insertWithId<IFake>(dynamicallyCollection, fake);
+
+    await sut.remove(dynamicallyCollection, "23021990");
+
+    const response = sut.commitTransaction();
+
+    await expect(response).resolves;
+  });
+
+  it("Should be execute the transaction with error - No one transaction was started!", async () => {
+    try {
+      await sut.commitTransaction();
+      expect(true).toBe(false);
+    } catch (ex) {
+      expect(ex).toBe("No one transaction was started!");
+    }
+  });
+
+  it("Should be execute the transaction with error - Already exists one transaction started!", async () => {
+    sut.startTransaction();
+
+    expect(() => sut.startTransaction()).toThrow(
+      "Already exists one transaction started!",
+    );
+
+    // this is necessary to continue other tests without error
+    sut.destroyTransaction();
+  });
+
+  it("Should be execute the transaction with error - Destroy Transaction!", async () => {
+    sut.startTransaction();
+    sut.destroyTransaction();
+
+    expect(() => sut.startTransaction()).not.toThrow(
+      "Already exists one transaction started!",
+    );
+
+    sut.destroyTransaction();
   });
 });
