@@ -34,6 +34,7 @@
     "import/prefer-default-export": "off",
     "import/no-dynamic-require": "off",
     "global-require": "off",
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }]
+    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
+    "allowShortCircuit": true
   }
 }
