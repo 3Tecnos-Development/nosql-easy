@@ -79,6 +79,14 @@ export class BaseService {
 | `getPaginatedCollection<T, F, R = T>` | Get batch data collection that refers to the specified collection path. Note: The firestore requires indexes for queries with filters and sorting, if applicable, you will need to create them. When the response class is informed, the return data will be transformed to it. | `collection: string, queryParams?: any, FilterClass?: new () => F, minimumSizeToPaginated?: number, options?: Options<T>, ResponseClass?: new () => R`         | `Promise<R[]>`    |
 | `getPaginatedArray<T, A, R = A>`      | Get the paginated array of a document that refers to the specified collection path.                                                                                                                                                                                             | `collection: string, id: string, field: keyof T, pageNumber: number, pageSize?: number, minimumSizeToPaginated?: number, ResponseClass?: new () => R`          | `Promise<R[]>`    |
 
+## Transaction
+
+| Function             | Description                                                                                                                                                                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `startTransaction`   | Start a new transaction. All the methods that modify the data executed after this command will be in the transaction context and will be executed when the method commitTransaction was called. Is used the batch transaction in the Firestore database. |
+| `commitTransaction`  | Commit the transaction.                                                                                                                                                                                                                                  |
+| `destroyTransaction` | Destroys an initiated transaction..                                                                                                                                                                                                                      |
+
 ## Types
 
 | Type               | Options                                                                   |
