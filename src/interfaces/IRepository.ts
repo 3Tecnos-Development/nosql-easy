@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { Options } from "../types/Options";
 import { WhereFilterOp } from "../types/Where";
-import { OrderByDirection, OrderBy } from "../types/OrderBy";
+import { OrderByDirection } from "../types/OrderBy";
 import { FieldNested } from "../types";
 
 export interface IRepository {
@@ -10,6 +10,7 @@ export interface IRepository {
     data: T,
     responseClass?: new () => R,
   ): Promise<R>;
+
   insertWithId<T, R>(
     collection: string,
     data: T,
@@ -90,4 +91,8 @@ export interface IRepository {
     minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]>;
+
+  startTransaction(): void;
+  commitTransaction<R = any>(): Promise<R[]>;
+  destroyTransaction(): void;
 }
