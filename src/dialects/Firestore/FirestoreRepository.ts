@@ -161,16 +161,18 @@ export class FirestoreRepository implements IRepository {
         offset,
       } = options;
 
-      const hasConditionals =
-        (whereCollection as any[])?.length > 0 ||
-        (filterCollection as any[])?.length > 0;
+      const allWhereCollection = [
+        ...(whereCollection ?? []),
+        ...filterToWhere(filterCollection ?? []),
+      ];
 
+      const hasConditionals = allWhereCollection?.length > 0;
       if (hasConditionals) {
         // Where
-        const queries = getConditionalQueries(collectionRef, [
-          ...(whereCollection ?? []),
-          ...filterToWhere(filterCollection ?? []),
-        ]);
+        const queries = getConditionalQueries(
+          collectionRef,
+          allWhereCollection,
+        );
 
         const hasCompoundQueries = queries.length > 1;
         if (hasCompoundQueries) {
@@ -180,8 +182,9 @@ export class FirestoreRepository implements IRepository {
             intersectModels<R>(snapShots),
             ResponseClass,
           );
+
           // Order By to Compound Queries
-          if (orderByCollection)
+          !!orderByCollection &&
             orderArrayBy<R>(result, orderByCollection as any);
 
           // Limit and Offset to Compound Queries
@@ -192,7 +195,7 @@ export class FirestoreRepository implements IRepository {
       }
       // Order By
       query = orderByCollection
-        ? addOrderByTo(query, orderByCollection)
+        ? addOrderByTo<T>(query, orderByCollection, allWhereCollection)
         : query;
 
       // Limit and Offset
