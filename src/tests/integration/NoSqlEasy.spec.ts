@@ -45,9 +45,7 @@ class Fake {
 NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
 
 let dynamicId: string;
-let insertTestId: string;
 let insertTransformTestId: string;
-let insertWithDateTestId: string;
 const idsToRemove: string[] = [];
 
 const mockFake = (id: string): FakeResponse => {
@@ -84,7 +82,7 @@ const makeSut = (): NoSqlEasy => {
 describe("NoSqlEasy", () => {
   const sut = makeSut();
 
-  afterEach(async () => {
+  afterAll(async () => {
     const promises = idsToRemove.map((id) => sut.remove("fakes", id));
     await Promise.all(promises);
   });
@@ -120,6 +118,7 @@ describe("NoSqlEasy", () => {
     };
     const newFake = await sut.insertWithId<IFake>("fakes", fake);
     const exists = await sut.exists("fakes", newFake.id!);
+    idsToRemove.push(fake.id!);
     expect(exists).toBe(true);
     expect(newFake).not.toHaveProperty("birth");
   });
@@ -243,10 +242,10 @@ describe("NoSqlEasy", () => {
     };
 
     const response = await sut.insert("fakes", fake, FakeResponse);
-    insertTestId = response.id;
+    idsToRemove.push(response.id!);
 
     const toCompare: FakeResponse = {
-      id: insertTestId,
+      id: response.id,
     };
 
     expect(response).toEqual(toCompare);
@@ -263,6 +262,7 @@ describe("NoSqlEasy", () => {
       birth: new Date(1988, 10, 10),
     };
     const response = await sut.insertWithId("fakes", fake, FakeResponse);
+    idsToRemove.push(response.id!);
 
     const toCompare: FakeResponse = {
       id: response.id,
@@ -284,7 +284,7 @@ describe("NoSqlEasy", () => {
     expect(objectResponse).toEqual(toCompare);
   });
 
-  it("Testando o método getCollection com filtros", async () => {
+  it("Testing the getCollection method with filters, sorting and paging.", async () => {
     const fakeMussum: IFake = {
       name: "Mussum",
       age: 32,
@@ -303,7 +303,7 @@ describe("NoSqlEasy", () => {
 
     const fakeZacarias: IFake = {
       name: "Zacarias",
-      age: 40,
+      age: 44,
       email: "zacas@3tecnos.com.br",
       items: [],
       birth: new Date(1970, 10, 10),
@@ -316,7 +316,7 @@ describe("NoSqlEasy", () => {
     idsToRemove.push(mussum.id!, zacarias.id!, didi.id!);
 
     const filter: Filter<IFake>[] = [
-      { field: "age", operator: ">=", value: 30 },
+      { field: "age", operator: ">=", value: 33 },
       { field: "age", operator: "<=", value: 60 },
       {
         field: "birth",
@@ -332,20 +332,34 @@ describe("NoSqlEasy", () => {
       filterCollection: filter,
       whereCollection: where,
       orderByCollection: orderBy,
-      // offset: 1,
-      // limit: 2,
+      offset: 1,
+      limit: 2,
     };
-    let response = [];
-    let responseIds: string[] = [];
-    let toCompare: string[] = [];
-    try {
-      response = await sut.getCollection<IFake>("fakes", options);
-      responseIds = response.map((r) => r.id!);
-      toCompare = [didi.id!];
-    } catch (ex) {
-      console.log("test error: ", ex);
-    }
+
+    const response = await sut.getCollection<IFake>("fakes", options);
+    const responseIds = response.map((r) => r.id!);
+    const toCompare = [zacarias.id!];
     expect(responseIds).toEqual(toCompare);
+  });
+
+  it("Testing the getCollection method by rejecting the query when the ordering is not in agreement.", async () => {
+    const where: Where<IFake>[] = [
+      { fieldPath: "name", operator: "==", value: "Mussum" },
+    ];
+    const orderBy: OrderBy<IFake>[] = [
+      { fieldPath: "name", direction: "desc" },
+    ];
+    const options: Options<IFake> = {
+      whereCollection: where,
+      orderByCollection: orderBy,
+    };
+    expect(
+      sut.getCollection<IFake, IFakeItem>("fakes", options),
+    ).rejects.toEqual(
+      new Error(
+        "It is not allowed to order a query by a field included in an equality (==) or (in) the clause.",
+      ),
+    );
   });
 
   it("Testando o método getPaginatedCollection com o retorno customizado", async () => {
@@ -499,6 +513,7 @@ describe("NoSqlEasy", () => {
       birth,
     };
     await sut.insertWithId<IFake>("fakes", fake);
+    idsToRemove.push(fake.id!);
 
     const fakeResponse = await sut.getById<IFake>("fakes", "9876");
     expect(fakeResponse.birth).toEqual(birth);
@@ -515,6 +530,7 @@ describe("NoSqlEasy", () => {
     );
     const newFake = await sut.insert<Fake>("fakes", fakeTransformed);
     insertTransformTestId = newFake.id!;
+    idsToRemove.push(insertTransformTestId);
     expect(newFake.id!.length > 0).toBeTruthy();
   });
 
@@ -530,6 +546,7 @@ describe("NoSqlEasy", () => {
     );
     const newFake = await sut.insertWithId<Fake>("fakes", fakeTransformed);
     const exists = await sut.exists("fakes", newFake.id!);
+    idsToRemove.push(newFake.id!);
     expect(exists).toBeTruthy();
   });
 
@@ -644,7 +661,7 @@ describe("NoSqlEasy", () => {
       birth: new Date(),
     };
     const newFake = await sut.insert<IFake>("fakes", fake);
-    insertWithDateTestId = newFake.id!;
+    idsToRemove.push(newFake.id!);
 
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
 
@@ -663,6 +680,7 @@ describe("NoSqlEasy", () => {
     };
     const newFake = await sut.insertWithId<IFake>("fakes", fake);
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
+    idsToRemove.push(newFake.id!);
 
     expect(compare).toBeTruthy();
   });
@@ -692,20 +710,6 @@ describe("NoSqlEasy", () => {
   });
 
   it("Testando o método remove", async () => {
-    await sut.remove("fakes", insertTestId);
-    await sut.remove("fakes", dynamicId);
-    await sut.remove("fakes", insertTransformTestId);
-    await sut.remove("fakes", insertWithDateTestId);
-    await sut.remove("fakes", "123456");
-    await sut.remove("fakes", "000000");
-    await sut.remove("fakes", "111111");
-    await sut.remove("fakes", "9876");
-    await sut.remove("fakes", "4334");
-    await sut.remove("fakes", "222");
-    const [existsOne, existsSecond] = await Promise.all([
-      sut.exists("fakes", dynamicId),
-      sut.exists("fakes", "123456"),
-    ]);
-    expect(existsOne && existsSecond).toBeFalsy();
+    expect(await sut.remove("fakes", dynamicId)).toBeFalsy();
   });
 });
