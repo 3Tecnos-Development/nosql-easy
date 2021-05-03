@@ -35,6 +35,6 @@
     "import/no-dynamic-require": "off",
     "global-require": "off",
     "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "allowShortCircuit": true
+    "no-unused-expressions": ["error", { "allowShortCircuit": true }]
   }
 }
