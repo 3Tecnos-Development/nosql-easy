@@ -33,11 +33,9 @@ export { IFirestoreCredential, FirestoreRepository };
 export class NoSqlEasy implements IRepository {
   providers = Array<IProvider>();
 
-  repository: IRepository;
+  protected repository: IRepository;
 
-  transaction: Transaction["transaction"];
-
-  existsTransaction: boolean | undefined;
+  protected transaction: Transaction["transaction"];
 
   constructor() {
     this.providers = [
@@ -239,15 +237,18 @@ export class NoSqlEasy implements IRepository {
     );
   }
 
-  startTransaction() {
-    this.repository.startTransaction();
+  executeTransaction<T>(
+    // eslint-disable-next-line no-unused-vars
+    transaction: (t: any) => Promise<T>,
+  ): Promise<T> {
+    return this.repository.executeTransaction(transaction);
   }
 
-  commitTransaction<R = any>(): Promise<R[]> {
-    return this.repository.commitTransaction<R>();
+  cleanTransaction(): void {
+    this.repository.cleanTransaction();
   }
 
-  destroyTransaction() {
-    this.repository.destroyTransaction();
+  setTransaction(transaction: Transaction["transaction"]): void {
+    this.repository.setTransaction(transaction);
   }
 }

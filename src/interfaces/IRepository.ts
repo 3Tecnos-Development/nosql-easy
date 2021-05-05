@@ -2,7 +2,7 @@
 import { Options } from "../types/Options";
 import { WhereFilterOp } from "../types/Where";
 import { OrderByDirection } from "../types/OrderBy";
-import { FieldNested } from "../types";
+import { FieldNested, Transaction } from "../types";
 
 export interface IRepository {
   insert<T, R>(
@@ -16,12 +16,14 @@ export interface IRepository {
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R>;
+
   insertElementInArray(
     collection: string,
     id: string,
     arrayFieldName: string,
     Value: any,
   ): Promise<void>;
+
   removeElementInArray(
     collection: string,
     id: string,
@@ -92,7 +94,9 @@ export interface IRepository {
     ResponseClass?: new () => R,
   ): Promise<R[]>;
 
-  startTransaction(): void;
-  commitTransaction<R = any>(): Promise<R[]>;
-  destroyTransaction(): void;
+  executeTransaction<T>(transaction: (t: any) => Promise<T>): Promise<T>;
+
+  cleanTransaction(): void;
+
+  setTransaction(transaction: Transaction["transaction"]): void;
 }

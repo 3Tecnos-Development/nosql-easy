@@ -15,7 +15,7 @@ import { DocumentData, UpdateData } from "@firebase/firestore-types";
 
 import { IFirestoreCredential } from "./interfaces";
 import { IDataTransformPort, IRepository } from "../../interfaces";
-import { FieldNested, Options, Where } from "../../types";
+import { FieldNested, Options, Transaction, Where } from "../../types";
 import {
   emptyToUndefined,
   paginateArray,
@@ -26,9 +26,7 @@ import { DataTransformAdapter } from "../../adapters/dataTransformer";
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
 
-  private transaction: firestore.WriteBatch | undefined;
-
-  private existsTransaction: boolean | undefined;
+  protected transaction: firestore.Transaction | undefined;
 
   private dataTransform: IDataTransformPort;
 
@@ -131,8 +129,8 @@ export class FirestoreRepository implements IRepository {
 
     const collectionReference = this.firestore.collection(collection);
 
-    this.existsTransaction
-      ? this.transaction?.set(collectionReference.doc(), obj)
+    this.transaction
+      ? await this.transaction.set(collectionReference.doc(), obj)
       : await collectionReference
           .add(obj)
           .then(async (docRef) => {
@@ -161,8 +159,11 @@ export class FirestoreRepository implements IRepository {
     if (obj.hasOwnProperty("id")) {
       const collectionReference = this.firestore.collection(collection);
 
-      this.existsTransaction
-        ? this.transaction?.set(collectionReference.doc((obj as any).id!), obj)
+      this.transaction
+        ? await this.transaction.set(
+            collectionReference.doc((obj as any).id!),
+            obj,
+          )
         : await collectionReference.doc((obj as any).id!).set(obj);
 
       const response = ResponseClass
@@ -190,8 +191,8 @@ export class FirestoreRepository implements IRepository {
     const elementToAdd = firebase.firestore.FieldValue.arrayUnion(value);
     element[arrayFieldName] = elementToAdd;
 
-    this.existsTransaction
-      ? this.transaction?.update(docRef, element)
+    this.transaction
+      ? this.transaction.update(docRef, element)
       : await docRef.update(
           arrayFieldName,
           firebase.firestore.FieldValue.arrayUnion(value),
@@ -212,8 +213,8 @@ export class FirestoreRepository implements IRepository {
     const elementToRemove = firebase.firestore.FieldValue.arrayRemove(value);
     element[arrayFieldName] = elementToRemove;
 
-    this.existsTransaction
-      ? this.transaction?.update(docRef, element)
+    this.transaction
+      ? this.transaction.update(docRef, element)
       : await docRef.update(
           arrayFieldName,
           firebase.firestore.FieldValue.arrayRemove(value),
@@ -259,7 +260,10 @@ export class FirestoreRepository implements IRepository {
       query = options.offset ? query.offset(options.offset) : query;
     }
 
-    const snapShot = await query.get();
+    const snapShot = this.transaction
+      ? await this.transaction.get(query)
+      : await query.get();
+
     let elements = this.docToModel<R>(snapShot);
 
     elements = ResponseClass
@@ -281,7 +285,9 @@ export class FirestoreRepository implements IRepository {
     let snapShot: firestore.DocumentData | undefined = {};
     const doc = this.firestore.collection(collection).doc(id);
 
-    snapShot = await doc.get();
+    snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
 
     if (snapShot?.data()) {
       Object.assign(data, { id: snapShot?.id });
@@ -302,10 +308,14 @@ export class FirestoreRepository implements IRepository {
     operator: FirebaseFirestore.WhereFilterOp = "==",
     ResponseClass?: new () => R,
   ): Promise<R[]> {
-    const snapShot = await this.firestore
+    const doc = this.firestore
       .collection(collection)
-      .where(fieldPath, operator, value)
-      .get();
+      .where(fieldPath, operator, value);
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     let elements = this.docToModel<R>(snapShot);
     elements = ResponseClass
       ? await this.dataTransform.transform(ResponseClass, elements, {
@@ -324,11 +334,15 @@ export class FirestoreRepository implements IRepository {
     direction: FirebaseFirestore.OrderByDirection = "desc",
     ResponseClass?: new () => R,
   ): Promise<R[]> {
-    const snapShot = await this.firestore
+    const doc = this.firestore
       .collection(collection)
       .where(fieldPath, whereFilter, value)
-      .orderBy(fieldOrder, direction)
-      .get();
+      .orderBy(fieldOrder, direction);
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     let elements = this.docToModel<R>(snapShot);
     elements = ResponseClass
       ? await this.dataTransform.transform(ResponseClass, elements, {
@@ -348,8 +362,8 @@ export class FirestoreRepository implements IRepository {
       if (snapShot) {
         delete (obj as any).id;
 
-        this.existsTransaction
-          ? this.transaction?.update(snapShot, obj)
+        this.transaction
+          ? this.transaction.update(snapShot, obj)
           : await snapShot.update(obj);
 
         return Promise.resolve();
@@ -380,8 +394,8 @@ export class FirestoreRepository implements IRepository {
         }`;
       }
 
-      this.existsTransaction
-        ? this.transaction?.update(snapShot, obj)
+      this.transaction
+        ? this.transaction.update(snapShot, path, obj)
         : await snapShot.update(path, obj);
 
       return Promise.resolve();
@@ -416,10 +430,10 @@ export class FirestoreRepository implements IRepository {
       const elementToAdd = firestore.FieldValue.arrayUnion(obj);
       element[path] = elementToRemove;
 
-      if (this.existsTransaction) {
-        this.transaction?.update(snapShot, element);
+      if (this.transaction) {
+        this.transaction.update(snapShot, element);
         element[path] = elementToAdd;
-        this.transaction?.update(snapShot, element);
+        this.transaction.update(snapShot, element);
       } else {
         await this.firestore.runTransaction(async (t) => {
           await t.update(snapShot, element);
@@ -435,13 +449,18 @@ export class FirestoreRepository implements IRepository {
 
   async remove(collection: string, id: string): Promise<void> {
     const snapShot = this.firestore.collection(collection).doc(id);
-    this.existsTransaction
-      ? await this.transaction?.delete(snapShot)
+    this.transaction
+      ? await this.transaction.delete(snapShot)
       : await snapShot.delete();
   }
 
   async exists(collection: string, id: string): Promise<boolean> {
-    const snapShot = await this.firestore.collection(collection).doc(id).get();
+    const doc = this.firestore.collection(collection).doc(id);
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     return snapShot.exists;
   }
 
@@ -464,7 +483,9 @@ export class FirestoreRepository implements IRepository {
       });
     }
 
-    const snapShot = await query.get();
+    const snapShot = this.transaction
+      ? await this.transaction.get(query)
+      : await query.get();
 
     return snapShot.size;
   }
@@ -550,29 +571,22 @@ export class FirestoreRepository implements IRepository {
     return response;
   }
 
-  startTransaction() {
-    if (this.existsTransaction) {
+  executeTransaction<T>(
+    // eslint-disable-next-line no-unused-vars
+    transaction: (t: any) => Promise<T>,
+  ): Promise<T> {
+    if (this.transaction) {
       throw new Error("Already exists one transaction started!");
     }
 
-    this.existsTransaction = true;
-
-    this.transaction = this.firestore.batch();
+    return this.firestore.runTransaction<T>(transaction);
   }
 
-  async commitTransaction<R>(): Promise<R[]> {
-    if (!this.existsTransaction && this.existsTransaction !== false) {
-      return Promise.reject("No one transaction was started!");
-    }
-
-    const result = this.transaction!.commit();
+  cleanTransaction(): void {
     this.transaction = undefined;
-    this.existsTransaction = undefined;
-    return (result as unknown) as Promise<R[]>;
   }
 
-  destroyTransaction() {
-    this.existsTransaction = undefined;
-    this.transaction = undefined;
+  setTransaction(transaction: Transaction["transaction"]): void {
+    this.transaction = transaction;
   }
 }
