@@ -61,7 +61,6 @@ export class BaseService {
 
 | Function                              | Description                                                                                                                                                                                                                                                                     | Param                                                                                                                                                          | Return            |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `WhereFilterOp`                       | Add a new document to this collection with the specified data, assigning it a document ID automatically                                                                                                                                                                         | `collection: string, data: T `                                                                                                                                 | `Promise<T>`      |
 | `insert<T, R = T>`                    | Add a new document to this collection with the specified data, assigning it a document ID automatically. When the response class is informed, the return data will be transformed to it.                                                                                        | `collection: string, data: T, ResponseClass?: new () => R`                                                                                                     | `Promise<R>`      |
 | `insertWithId<T, R = T>`              | Add a new document to this collection with the specified data, assigning it a document ID automatically, inserting a custom id. When the response class is informed, the return data will be transformed to it.                                                                 | `collection: string, data: T, ResponseClass?: new () => R `                                                                                                    | `Promise<R>`      |
 | `insertElementInArray`                | Add a new document to this collection with the specified data, and update fields into document referred                                                                                                                                                                         | `collection: string, id: string, arrayFieldName: string, Value: any`                                                                                           | `Promise`         |
@@ -81,8 +80,9 @@ export class BaseService {
 
 ## Types
 
-| Type               | Options                                                                   |
-| ------------------ | ------------------------------------------------------------------------- |
-| `WhereFilterOp`    | `<`, `<=`, `==`, `>=`, `">`, `array-contains`, `in`, `array-contains-any` |
-| `OrderByDirection` | `desc`, `asc`                                                             |
-| `DialectType`      | `Firestore`, `Firebase`                                                   |
+| Type               | Options                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `WhereFilterOp`    | `<`, `<=`, `==`, `!=`, `>=`, `>`, `array-contains`, `in`, `array-contains-any`          |
+| `FilterOperator`   | `<`, `<=`, `==`, `!=`, `>=`, `>`, `array-contains`, `in`, `array-contains-any`, `range` |
+| `OrderByDirection` | `desc`, `asc`                                                                           |
+| `DialectType`      | `Firestore`, `Firebase`                                                                 |
