@@ -9,7 +9,7 @@ import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
 import { IFirestoreCredential, NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
-import { Options, OrderBy, Where } from "../../types";
+import { Filter, Options, OrderBy, Where } from "../../types";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 dotenv.config();
@@ -50,9 +50,8 @@ class Fake {
 NoSqlEasyConfig.setDialect(process.env.DB_DIALECT as DialectType);
 
 let dynamicId: string;
-let insertTestId: string;
 let insertTransformTestId: string;
-let insertWithDateTestId: string;
+const idsToRemove: string[] = [];
 
 const mockFake = (id: string): FakeResponse => {
   return {
@@ -87,15 +86,25 @@ const makeSut = (): NoSqlEasy => {
 
 describe("NoSqlEasy", () => {
   const sut = makeSut();
+  let dynamicallyCollection = "fakes";
 
-  const partOfPrivateKey = MapEnv.get<IFirestoreCredential>(
-    "FIRESTORE_CREDENTIAL",
-  ).credential.privateKey.substr(30, 5);
+  beforeAll(async () => {
+    const partOfPrivateKey = MapEnv.get<IFirestoreCredential>(
+      "FIRESTORE_CREDENTIAL",
+    ).credential.privateKey.substr(30, 5);
 
-  const dynamicallyCollection = `fakes-${partOfPrivateKey}`;
+    dynamicallyCollection = `fakes-${partOfPrivateKey}`;
 
-  // eslint-disable-next-line no-console
-  console.info("collection name -> ", dynamicallyCollection);
+    // eslint-disable-next-line no-console
+    console.info("collection name -> ", dynamicallyCollection);
+  });
+
+  afterAll(async () => {
+    const promises = idsToRemove.map((id) =>
+      sut.remove(dynamicallyCollection, id),
+    );
+    await Promise.all(promises);
+  });
 
   it("Testando o método insert", async () => {
     const fake: IFake = {
@@ -128,6 +137,7 @@ describe("NoSqlEasy", () => {
     };
     const newFake = await sut.insertWithId<IFake>(dynamicallyCollection, fake);
     const exists = await sut.exists(dynamicallyCollection, newFake.id!);
+    idsToRemove.push(fake.id!);
     expect(exists).toBe(true);
     expect(newFake).not.toHaveProperty("birth");
   });
@@ -284,10 +294,10 @@ describe("NoSqlEasy", () => {
       fake,
       FakeResponse,
     );
-    insertTestId = response.id;
+    idsToRemove.push(response.id!);
 
     const toCompare: FakeResponse = {
-      id: insertTestId,
+      id: response.id,
     };
 
     expect(response).toEqual(toCompare);
@@ -308,6 +318,7 @@ describe("NoSqlEasy", () => {
       fake,
       FakeResponse,
     );
+    idsToRemove.push(response.id!);
 
     const toCompare: FakeResponse = {
       id: response.id,
@@ -327,6 +338,95 @@ describe("NoSqlEasy", () => {
     const toCompare = mockFake(objectResponse?.id!);
 
     expect(objectResponse).toEqual(toCompare);
+  });
+
+  it("Testing the getCollection method with filters, sorting and paging.", async () => {
+    const fakeMussum: IFake = {
+      name: "Mussum",
+      age: 32,
+      email: "mussum@3tecnos.com.br",
+      items: [],
+      birth: new Date(1980, 10, 10),
+    };
+
+    const fakeDidi: IFake = {
+      name: "Didi",
+      age: 56,
+      email: "mussum@3tecnos.com.br",
+      items: [],
+      birth: new Date(1940, 10, 10),
+    };
+
+    const fakeZacarias: IFake = {
+      name: "Zacarias",
+      age: 44,
+      email: "zacas@3tecnos.com.br",
+      items: [],
+      birth: new Date(1970, 10, 10),
+    };
+
+    const mussum = await sut.insert<IFake>(dynamicallyCollection, fakeMussum);
+    const zacarias = await sut.insert<IFake>(
+      dynamicallyCollection,
+      fakeZacarias,
+    );
+    const didi = await sut.insert<IFake>(dynamicallyCollection, fakeDidi);
+
+    idsToRemove.push(mussum.id!, zacarias.id!, didi.id!);
+
+    const filter: Filter<IFake>[] = [
+      { field: "age", operator: ">=", value: 33 },
+      { field: "age", operator: "<=", value: 60 },
+      {
+        field: "birth",
+        operator: "range",
+        value: [new Date(1940, 10, 9), new Date(2020, 10, 10)],
+      },
+      {
+        field: "email",
+        operator: "in",
+        value: ["zacas@3tecnos.com.br", "mussum@3tecnos.com.br"],
+      },
+    ];
+    const where: Where<IFake>[] = [
+      { fieldPath: "age", operator: ">", value: 42 },
+    ];
+    const orderBy: OrderBy<IFake>[] = [{ fieldPath: "age", direction: "desc" }];
+    const options: Options<IFake> = {
+      filterCollection: filter,
+      whereCollection: where,
+      orderByCollection: orderBy,
+      offset: 1,
+      limit: 2,
+    };
+
+    const response = await sut.getCollection<IFake>(
+      dynamicallyCollection,
+      options,
+    );
+    const responseIds = response.map((r) => r.id!);
+    const toCompare = [zacarias.id!];
+    expect(responseIds).toEqual(toCompare);
+  });
+
+  it("Testing the getCollection method by rejecting the query when the ordering is not in agreement.", async () => {
+    const where: Where<IFake>[] = [
+      { fieldPath: "name", operator: "==", value: "Mussum" },
+    ];
+    const orderBy: OrderBy<IFake>[] = [
+      { fieldPath: "name", direction: "desc" },
+    ];
+    const options: Options<IFake> = {
+      whereCollection: where,
+      orderByCollection: orderBy,
+    };
+    expect(
+      sut.getCollection<IFake, IFakeItem>(dynamicallyCollection, options),
+    ).rejects.toEqual(
+      new Error(
+        "It is not allowed to order a query by a field included in an equality (==) or (in) the clause.",
+      ),
+    );
   });
 
   it("Testando o método getPaginatedCollection com o retorno customizado", async () => {
@@ -473,7 +573,7 @@ describe("NoSqlEasy", () => {
         pageNumber,
         pageSize,
       ),
-    ).rejects.toEqual("The field is not an array.");
+    ).rejects.toEqual(new Error("The field is not an array."));
   });
 
   it("Testando o retorno de documento com propriedade do tipo Date", async () => {
@@ -488,6 +588,7 @@ describe("NoSqlEasy", () => {
       birth,
     };
     await sut.insertWithId<IFake>(dynamicallyCollection, fake);
+    idsToRemove.push(fake.id!);
 
     const fakeResponse = await sut.getById<IFake>(
       dynamicallyCollection,
@@ -510,6 +611,7 @@ describe("NoSqlEasy", () => {
       fakeTransformed,
     );
     insertTransformTestId = newFake.id!;
+    idsToRemove.push(insertTransformTestId);
     expect(newFake.id!.length > 0).toBeTruthy();
   });
 
@@ -528,6 +630,7 @@ describe("NoSqlEasy", () => {
       fakeTransformed,
     );
     const exists = await sut.exists(dynamicallyCollection, newFake.id!);
+    idsToRemove.push(newFake.id!);
     expect(exists).toBeTruthy();
   });
 
@@ -652,7 +755,7 @@ describe("NoSqlEasy", () => {
       birth: new Date(),
     };
     const newFake = await sut.insert<IFake>(dynamicallyCollection, fake);
-    insertWithDateTestId = newFake.id!;
+    idsToRemove.push(newFake.id!);
 
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
 
@@ -671,6 +774,7 @@ describe("NoSqlEasy", () => {
     };
     const newFake = await sut.insertWithId<IFake>(dynamicallyCollection, fake);
     const compare = newFake && typeof newFake.birth?.getMonth === "function";
+    idsToRemove.push(newFake.id!);
 
     expect(compare).toBeTruthy();
   });
@@ -700,21 +804,7 @@ describe("NoSqlEasy", () => {
   });
 
   it("Testando o método remove", async () => {
-    await sut.remove(dynamicallyCollection, insertTestId);
-    await sut.remove(dynamicallyCollection, dynamicId);
-    await sut.remove(dynamicallyCollection, insertTransformTestId);
-    await sut.remove(dynamicallyCollection, insertWithDateTestId);
-    await sut.remove(dynamicallyCollection, "123456");
-    await sut.remove(dynamicallyCollection, "000000");
-    await sut.remove(dynamicallyCollection, "111111");
-    await sut.remove(dynamicallyCollection, "9876");
-    await sut.remove(dynamicallyCollection, "4334");
-    await sut.remove(dynamicallyCollection, "222");
-    const [existsOne, existsSecond] = await Promise.all([
-      sut.exists(dynamicallyCollection, dynamicId),
-      sut.exists(dynamicallyCollection, "123456"),
-    ]);
-    expect(existsOne && existsSecond).toBeFalsy();
+    expect(await sut.remove(dynamicallyCollection, dynamicId)).toBeFalsy();
   });
 
   it("Should be execute the transaction with success", async () => {

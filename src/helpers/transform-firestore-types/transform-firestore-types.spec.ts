@@ -1,6 +1,6 @@
 /* eslint-disable no-plusplus */
 import faker from "faker";
-import { transformFirestoreTypes } from "./transformFirestoreTypes";
+import { transformFirestoreTypes } from "./transform-firestore-types";
 
 interface IFakeTransform {
   id: string;

@@ -1,6 +1,6 @@
 /* eslint-disable no-plusplus */
 import faker from "faker";
-import { paginateArray } from "./paginateArray";
+import { paginateArray } from "./paginate-array";
 
 interface IFake {
   id: string;

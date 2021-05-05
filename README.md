@@ -110,8 +110,9 @@ export class BaseService {
 
 ## Types
 
-| Type               | Options                                                                   |
-| ------------------ | ------------------------------------------------------------------------- |
-| `WhereFilterOp`    | `<`, `<=`, `==`, `>=`, `">`, `array-contains`, `in`, `array-contains-any` |
-| `OrderByDirection` | `desc`, `asc`                                                             |
-| `DialectType`      | `Firestore`, `Firebase`                                                   |
+| Type               | Options                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `WhereFilterOp`    | `<`, `<=`, `==`, `!=`, `>=`, `>`, `array-contains`, `in`, `array-contains-any`          |
+| `FilterOperator`   | `<`, `<=`, `==`, `!=`, `>=`, `>`, `array-contains`, `in`, `array-contains-any`, `range` |
+| `OrderByDirection` | `desc`, `asc`                                                                           |
+| `DialectType`      | `Firestore`, `Firebase`                                                                 |
