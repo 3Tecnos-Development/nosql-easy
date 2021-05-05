@@ -1,6 +1,5 @@
 /* eslint-disable no-array-constructor */
 import { IRepository, IProvider } from "./interfaces";
-import { Options } from "./types/Options";
 import { IFirestoreCredential } from "./dialects/Firestore/interfaces";
 import { FirestoreRepository } from "./dialects/Firestore";
 import { NoSqlEasyConfig } from "./Config";
@@ -12,6 +11,8 @@ import {
   Where,
   WhereFilterOp,
   WhereNested,
+  Options,
+  Transaction,
   Filter,
   FilterOperator,
 } from "./types";
@@ -36,7 +37,9 @@ export { IFirestoreCredential, FirestoreRepository };
 export class NoSqlEasy implements IRepository {
   providers = Array<IProvider>();
 
-  repository: IRepository;
+  protected repository: IRepository;
+
+  protected transaction: Transaction["transaction"];
 
   constructor() {
     this.providers = [
@@ -236,5 +239,20 @@ export class NoSqlEasy implements IRepository {
       minimumSizeToPaginated,
       ResponseClass,
     );
+  }
+
+  executeTransaction<T>(
+    // eslint-disable-next-line no-unused-vars
+    transaction: (t: any) => Promise<T>,
+  ): Promise<T> {
+    return this.repository.executeTransaction(transaction);
+  }
+
+  cleanTransaction(): void {
+    this.repository.cleanTransaction();
+  }
+
+  setTransaction(transaction: Transaction["transaction"]): void {
+    this.repository.setTransaction(transaction);
   }
 }

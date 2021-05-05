@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import { Options } from "../types/Options";
 import { WhereFilterOp } from "../types/Where";
-import { OrderByDirection, OrderBy } from "../types/OrderBy";
-import { FieldNested } from "../types";
+import { OrderByDirection } from "../types/OrderBy";
+import { FieldNested, Transaction } from "../types";
 
 export interface IRepository {
   insert<T, R>(
@@ -10,17 +10,20 @@ export interface IRepository {
     data: T,
     responseClass?: new () => R,
   ): Promise<R>;
+
   insertWithId<T, R>(
     collection: string,
     data: T,
     ResponseClass?: new () => R,
   ): Promise<R>;
+
   insertElementInArray(
     collection: string,
     id: string,
     arrayFieldName: string,
     Value: any,
   ): Promise<void>;
+
   removeElementInArray(
     collection: string,
     id: string,
@@ -90,4 +93,10 @@ export interface IRepository {
     minimumSizeToPaginated?: number,
     ResponseClass?: new () => R,
   ): Promise<R[]>;
+
+  executeTransaction<T>(transaction: (t: any) => Promise<T>): Promise<T>;
+
+  cleanTransaction(): void;
+
+  setTransaction(transaction: Transaction["transaction"]): void;
 }

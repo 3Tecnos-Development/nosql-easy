@@ -78,6 +78,38 @@ export class BaseService {
 | `getPaginatedCollection<T, F, R = T>` | Get batch data collection that refers to the specified collection path. Note: The firestore requires indexes for queries with filters and sorting, if applicable, you will need to create them. When the response class is informed, the return data will be transformed to it. | `collection: string, queryParams?: any, FilterClass?: new () => F, minimumSizeToPaginated?: number, options?: Options<T>, ResponseClass?: new () => R`         | `Promise<R[]>`    |
 | `getPaginatedArray<T, A, R = A>`      | Get the paginated array of a document that refers to the specified collection path.                                                                                                                                                                                             | `collection: string, id: string, field: keyof T, pageNumber: number, pageSize?: number, minimumSizeToPaginated?: number, ResponseClass?: new () => R`          | `Promise<R[]>`    |
 
+## Transaction
+
+| Function                | Description                                                                                                                                                                                                                                                                                                                                                                   | Param                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `executeTransaction<T>` | Start a new transaction. All the methods executed in transaction function will be in the transaction context and will be executed through the param transaction that is a function. Is used the runTransaction function from the Firestore database, because of this exists the same limitations. E.g, read functions can't be executed after the functions that modify data. | transaction : (t: any) => `Promise<T>`    |
+| `cleanTransaction`      | This method cleans the context transactional.                                                                                                                                                                                                                                                                                                                                 |
+| `setTransaction`        | This method setting the transaction in the context.                                                                                                                                                                                                                                                                                                                           | `transaction: Transaction["transaction"]` |
+
+#### Usage
+
+```typescript
+...
+   const repository = this.repository;
+
+   const transaction = async (t: any) => {
+      repository.setTransaction(t);
+
+	  const data = await repository.getById<IFake, FakeResponse>(
+        dynamicallyCollection,
+        "123456",
+        FakeResponse,
+      );
+
+      await repository.insertWithId<IFake>(dynamicallyCollection, fake);
+
+      await repository.remove(dynamicallyCollection, "23021990");
+    };
+
+    const response = await repository.executeTransaction(transaction);
+...
+```
+
 ## Types
 
 | Type               | Options                                                                                 |

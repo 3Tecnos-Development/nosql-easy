@@ -1,14 +1,14 @@
+/* eslint-disable no-unused-expressions */
 /* eslint-disable no-undef */
 /* eslint-disable no-prototype-builtins */
 /* eslint-disable indent */
 /* eslint-disable @typescript-eslint/indent */
 /* eslint-disable import/no-unresolved */
-
 import firebase, { firestore } from "firebase-admin";
 import { DocumentData, UpdateData } from "@firebase/firestore-types";
 
 import { IDataTransformPort, IRepository } from "../../interfaces";
-import { FieldNested, Options, Where } from "../../types";
+import { FieldNested, Options, Transaction, Where } from "../../types";
 import {
   emptyToUndefined,
   orderArrayBy,
@@ -28,6 +28,8 @@ import {
 
 export class FirestoreRepository implements IRepository {
   private firestore: firestore.Firestore;
+
+  protected transaction: firestore.Transaction | undefined;
 
   private dataTransform: IDataTransformPort;
 
@@ -70,20 +72,24 @@ export class FirestoreRepository implements IRepository {
     removeUndefinedProps(obj);
     let response = {} as R;
 
-    await this.firestore
-      .collection(collection)
-      .add(obj)
-      .then(async (docRef) => {
-        Object.assign(obj, { id: docRef.id });
-        response = ResponseClass
-          ? await this.dataTransform.transform(ResponseClass, obj, {
-              excludeExtraneousValues: true,
-            })
-          : transformFirestoreTypes(obj as R);
-      })
-      .catch((error) => {
-        throw new Error(error);
-      });
+    const collectionReference = this.firestore.collection(collection);
+
+    this.transaction
+      ? await this.transaction.set(collectionReference.doc(), obj)
+      : await collectionReference
+          .add(obj)
+          .then(async (docRef) => {
+            Object.assign(obj, { id: docRef.id });
+            response = ResponseClass
+              ? await this.dataTransform.transform(ResponseClass, obj, {
+                  excludeExtraneousValues: true,
+                })
+              : transformFirestoreTypes(obj as R);
+          })
+          .catch((error) => {
+            throw new Error(error);
+          });
+
     return emptyToUndefined(response);
   }
 
@@ -96,16 +102,21 @@ export class FirestoreRepository implements IRepository {
     removeUndefinedProps(obj);
 
     if (obj.hasOwnProperty("id")) {
-      await this.firestore
-        .collection(collection)
-        .doc((obj as any).id!)
-        .set(obj);
+      const collectionReference = this.firestore.collection(collection);
+
+      this.transaction
+        ? await this.transaction.set(
+            collectionReference.doc((obj as any).id!),
+            obj,
+          )
+        : await collectionReference.doc((obj as any).id!).set(obj);
 
       const response = ResponseClass
         ? await this.dataTransform.transform<R, unknown>(ResponseClass, obj, {
             excludeExtraneousValues: true,
           })
         : transformFirestoreTypes(obj as R);
+
       return response;
     }
     return Promise.reject(new Error("Id property not provided."));
@@ -118,11 +129,19 @@ export class FirestoreRepository implements IRepository {
     value: any,
   ): Promise<void> {
     removeUndefinedProps(value);
-    const docRef = await this.firestore.collection(collection).doc(id);
-    await docRef.update(
-      arrayFieldName,
-      firebase.firestore.FieldValue.arrayUnion(value),
-    );
+    const collectionReference = this.firestore.collection(collection);
+    const docRef = await collectionReference.doc(id);
+
+    const element: UpdateData = {};
+    const elementToAdd = firebase.firestore.FieldValue.arrayUnion(value);
+    element[arrayFieldName] = elementToAdd;
+
+    this.transaction
+      ? this.transaction.update(docRef, element)
+      : await docRef.update(
+          arrayFieldName,
+          firebase.firestore.FieldValue.arrayUnion(value),
+        );
   }
 
   async removeElementInArray(
@@ -132,11 +151,20 @@ export class FirestoreRepository implements IRepository {
     value: any,
   ): Promise<void> {
     removeUndefinedProps(value);
-    const docRef = await this.firestore.collection(collection).doc(id);
-    await docRef.update(
-      arrayFieldName,
-      firebase.firestore.FieldValue.arrayRemove(value),
-    );
+
+    const collectionReference = this.firestore.collection(collection);
+    const docRef = await collectionReference.doc(id);
+
+    const element: UpdateData = {};
+    const elementToRemove = firebase.firestore.FieldValue.arrayRemove(value);
+    element[arrayFieldName] = elementToRemove;
+
+    this.transaction
+      ? this.transaction.update(docRef, element)
+      : await docRef.update(
+          arrayFieldName,
+          firebase.firestore.FieldValue.arrayRemove(value),
+        );
   }
 
   generateDocumentId(collection: string): DocumentData {
@@ -202,7 +230,11 @@ export class FirestoreRepository implements IRepository {
       query = limit ? query.limit(limit) : query;
       query = offset ? query.offset(offset) : query;
     }
-    const snapShot = await query.get();
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(query)
+      : await query.get();
+
     return this.transform(snapShot, ResponseClass);
   }
 
@@ -212,7 +244,14 @@ export class FirestoreRepository implements IRepository {
     ResponseClass?: new () => R,
   ): Promise<R> {
     let data = {} as R;
-    const snapShot = await this.firestore.collection(collection).doc(id).get();
+
+    let snapShot: firestore.DocumentData | undefined = {};
+    const doc = this.firestore.collection(collection).doc(id);
+
+    snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     if (snapShot?.data()) {
       Object.assign(data, { id: snapShot?.id });
       data = ResponseClass
@@ -221,6 +260,7 @@ export class FirestoreRepository implements IRepository {
           })
         : await this.dataTransform.transform(data, snapShot?.data());
     }
+
     return emptyToUndefined(data);
   }
 
@@ -231,10 +271,14 @@ export class FirestoreRepository implements IRepository {
     operator: FirebaseFirestore.WhereFilterOp = "==",
     ResponseClass?: new () => R,
   ): Promise<R[]> {
-    const snapShot = await this.firestore
+    const doc = this.firestore
       .collection(collection)
-      .where(fieldPath, operator, value)
-      .get();
+      .where(fieldPath, operator, value);
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     let elements = docToModel<R>(snapShot);
     elements = ResponseClass
       ? await this.dataTransform.transform(ResponseClass, elements, {
@@ -253,11 +297,15 @@ export class FirestoreRepository implements IRepository {
     direction: FirebaseFirestore.OrderByDirection = "desc",
     ResponseClass?: new () => R,
   ): Promise<R[]> {
-    const snapShot = await this.firestore
+    const doc = this.firestore
       .collection(collection)
       .where(fieldPath, whereFilter, value)
-      .orderBy(fieldOrder, direction)
-      .get();
+      .orderBy(fieldOrder, direction);
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     let elements = docToModel<R>(snapShot);
     elements = ResponseClass
       ? await this.dataTransform.transform(ResponseClass, elements, {
@@ -276,7 +324,11 @@ export class FirestoreRepository implements IRepository {
         .doc((obj as any).id);
       if (snapShot) {
         delete (obj as any).id;
-        await snapShot.update(obj);
+
+        this.transaction
+          ? this.transaction.update(snapShot, obj)
+          : await snapShot.update(obj);
+
         return Promise.resolve();
       }
     }
@@ -292,7 +344,7 @@ export class FirestoreRepository implements IRepository {
     const snapShot = this.firestore.collection(collection).doc(id);
     if (snapShot) {
       let path = field as string;
-      let obj;
+      let obj: Object;
 
       if (typeof value === "object") {
         obj = await this.dataTransform.toObject(value);
@@ -304,7 +356,11 @@ export class FirestoreRepository implements IRepository {
           (field as FieldNested<T, C>).child
         }`;
       }
-      await snapShot.update(path, obj);
+
+      this.transaction
+        ? this.transaction.update(snapShot, path, obj)
+        : await snapShot.update(path, obj);
+
       return Promise.resolve();
     }
     return Promise.reject();
@@ -332,18 +388,22 @@ export class FirestoreRepository implements IRepository {
           (field as FieldNested<T, C>).child
         }`;
       }
+      const element: UpdateData = {};
+      const elementToRemove = firestore.FieldValue.arrayRemove(prevValue);
+      const elementToAdd = firestore.FieldValue.arrayUnion(obj);
+      element[path] = elementToRemove;
 
-      await this.firestore.runTransaction(async (t) => {
-        const element: UpdateData = {};
-
-        const elementToRemove = firestore.FieldValue.arrayRemove(prevValue);
-        element[path] = elementToRemove;
-        await t.update(snapShot, element);
-
-        element[path] = firestore.FieldValue.arrayUnion(obj);
-
-        await t.update(snapShot, element);
-      });
+      if (this.transaction) {
+        this.transaction.update(snapShot, element);
+        element[path] = elementToAdd;
+        this.transaction.update(snapShot, element);
+      } else {
+        await this.firestore.runTransaction(async (t) => {
+          await t.update(snapShot, element);
+          element[path] = elementToAdd;
+          await t.update(snapShot, element);
+        });
+      }
 
       return Promise.resolve();
     }
@@ -352,11 +412,18 @@ export class FirestoreRepository implements IRepository {
 
   async remove(collection: string, id: string): Promise<void> {
     const snapShot = this.firestore.collection(collection).doc(id);
-    await snapShot.delete();
+    this.transaction
+      ? await this.transaction.delete(snapShot)
+      : await snapShot.delete();
   }
 
   async exists(collection: string, id: string): Promise<boolean> {
-    const snapShot = await this.firestore.collection(collection).doc(id).get();
+    const doc = this.firestore.collection(collection).doc(id);
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(doc)
+      : await doc.get();
+
     return snapShot.exists;
   }
 
@@ -378,7 +445,11 @@ export class FirestoreRepository implements IRepository {
         );
       });
     }
-    const snapShot = await query.get();
+
+    const snapShot = this.transaction
+      ? await this.transaction.get(query)
+      : await query.get();
+
     return snapShot.size;
   }
 
@@ -461,5 +532,24 @@ export class FirestoreRepository implements IRepository {
       : arrayPaginated;
 
     return response;
+  }
+
+  executeTransaction<T>(
+    // eslint-disable-next-line no-unused-vars
+    transaction: (t: any) => Promise<T>,
+  ): Promise<T> {
+    if (this.transaction) {
+      throw new Error("Already exists one transaction started!");
+    }
+
+    return this.firestore.runTransaction<T>(transaction);
+  }
+
+  cleanTransaction(): void {
+    this.transaction = undefined;
+  }
+
+  setTransaction(transaction: Transaction["transaction"]): void {
+    this.transaction = transaction;
   }
 }
