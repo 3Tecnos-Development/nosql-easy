@@ -324,7 +324,7 @@ export class FirestoreRepository implements IRepository {
 
       if (typeof newValue === "object") {
         obj = await this.dataTransform.toObject(newValue);
-        this.removeUndefinedProps(obj);
+        removeUndefinedProps(obj);
       } else obj = newValue;
 
       if ((field as FieldNested<T, C>).parent) {
