@@ -90,21 +90,23 @@ export class BaseService {
 
 ```typescript
 ...
-   const transaction = async (t: any) => {
-      sut.setTransaction(t);
+   const repository = this.repository;
 
-	  const data = await sut.getById<IFake, FakeResponse>(
+   const transaction = async (t: any) => {
+      repository.setTransaction(t);
+
+	  const data = await repository.getById<IFake, FakeResponse>(
         dynamicallyCollection,
         "123456",
         FakeResponse,
       );
 
-      await sut.insertWithId<IFake>(dynamicallyCollection, fake);
+      await repository.insertWithId<IFake>(dynamicallyCollection, fake);
 
-      await sut.remove(dynamicallyCollection, "23021990");
+      await repository.remove(dynamicallyCollection, "23021990");
     };
 
-    const response = await sut.executeTransaction(transaction);
+    const response = await repository.executeTransaction(transaction);
 ...
 ```
 
