@@ -61,7 +61,6 @@ export class BaseService {
 
 | Function                              | Description                                                                                                                                                                                                                                                                     | Param                                                                                                                                                          | Return            |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `WhereFilterOp`                       | Add a new document to this collection with the specified data, assigning it a document ID automatically                                                                                                                                                                         | `collection: string, data: T `                                                                                                                                 | `Promise<T>`      |
 | `insert<T, R = T>`                    | Add a new document to this collection with the specified data, assigning it a document ID automatically. When the response class is informed, the return data will be transformed to it.                                                                                        | `collection: string, data: T, ResponseClass?: new () => R`                                                                                                     | `Promise<R>`      |
 | `insertWithId<T, R = T>`              | Add a new document to this collection with the specified data, assigning it a document ID automatically, inserting a custom id. When the response class is informed, the return data will be transformed to it.                                                                 | `collection: string, data: T, ResponseClass?: new () => R `                                                                                                    | `Promise<R>`      |
 | `insertElementInArray`                | Add a new document to this collection with the specified data, and update fields into document referred                                                                                                                                                                         | `collection: string, id: string, arrayFieldName: string, Value: any`                                                                                           | `Promise`         |
@@ -81,11 +80,33 @@ export class BaseService {
 
 ## Transaction
 
-| Function             | Description                                                                                                                                                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `startTransaction`   | Start a new transaction. All the methods that modify the data executed after this command will be in the transaction context and will be executed when the method commitTransaction was called. Is used the batch transaction in the Firestore database. |
-| `commitTransaction`  | Commit the transaction.                                                                                                                                                                                                                                  |
-| `destroyTransaction` | Destroys an initiated transaction..                                                                                                                                                                                                                      |
+| Function                | Description                                                                                                                                                                                                                                                                                                                                                                   | Param                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `executeTransaction<T>` | Start a new transaction. All the methods executed in transaction function will be in the transaction context and will be executed through the param transaction that is a function. Is used the runTransaction function from the Firestore database, because of this exists the same limitations. E.g, read functions can't be executed after the functions that modify data. | transaction : (t: any) => `Promise<T>`    |
+| `cleanTransaction`      | This method cleans the context transactional.                                                                                                                                                                                                                                                                                                                                 |
+| `setTransaction`        | This method setting the transaction in the context.                                                                                                                                                                                                                                                                                                                           | `transaction: Transaction["transaction"]` |
+
+## Usage
+
+```typescript
+...
+   const transaction = async (t: any) => {
+      sut.setTransaction(t);
+
+	  const data = await sut.getById<IFake, FakeResponse>(
+        dynamicallyCollection,
+        "123456",
+        FakeResponse,
+      );
+
+      await sut.insertWithId<IFake>(dynamicallyCollection, fake);
+
+      await sut.remove(dynamicallyCollection, "23021990");
+    };
+
+    const response = await sut.executeTransaction(transaction);
+...
+```
 
 ## Types
 
