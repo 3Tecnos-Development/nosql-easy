@@ -5,16 +5,23 @@ export const UniqueClausesArray = [
   "in",
   "array-contains-any",
 ] as const;
-export const ComparisonsArray = ["<", "<=", ">=", ">", "!="] as const;
-export const EqualOperatorOp = "==" as const;
+export const ComparisonsArray = ["<", "<=", ">=", ">"] as const;
+export const NotEqualsOperator = "!=" as const;
+export const EqualsOperator = "==" as const;
 
 export declare type UniqueClauses = typeof UniqueClausesArray[number];
 
 export declare type Comparisons = typeof ComparisonsArray[number];
 
-export declare type EqualOperator = typeof EqualOperatorOp;
+export declare type Equals = typeof EqualsOperator;
 
-export declare type WhereFilterOp = EqualOperator | Comparisons | UniqueClauses;
+export declare type NotEquals = typeof NotEqualsOperator;
+
+export declare type WhereFilterOp =
+  | Equals
+  | NotEquals
+  | Comparisons
+  | UniqueClauses;
 
 interface IWhere<K> {
   fieldPath: K;
