@@ -10,7 +10,11 @@ export const getConditionalQueries = <T>(
   whereCollection: (Where<T> | WhereNested<T, any>)[],
 ): firestore.Query<DocumentData>[] => {
   const queries = [] as firestore.Query<DocumentData>[];
+
+  /* In some cases, it is necessary to group the queries due to the limitations of the Firestore: 
+     https://firebase.google.com/docs/firestore/query-data/queries#query_limitations */
   const whereGroup = groupConditionsByCompoundQueries<T>(whereCollection);
+
   Object.values(whereGroup).forEach((whereArray: Where<T>[]) => {
     let query = collectionRef as firestore.Query;
     whereArray.forEach((where: Where<T>) => {
