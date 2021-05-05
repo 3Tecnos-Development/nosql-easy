@@ -86,7 +86,7 @@ export class BaseService {
 | `cleanTransaction`      | This method cleans the context transactional.                                                                                                                                                                                                                                                                                                                                 |
 | `setTransaction`        | This method setting the transaction in the context.                                                                                                                                                                                                                                                                                                                           | `transaction: Transaction["transaction"]` |
 
-## Usage
+#### Usage
 
 ```typescript
 ...
