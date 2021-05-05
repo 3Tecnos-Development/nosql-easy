@@ -9,7 +9,7 @@ import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
 import { IFirestoreCredential, NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
-import { Options, OrderBy, Where } from "../../types";
+import { FieldNested, Options, OrderBy, Where } from "../../types";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 dotenv.config();
@@ -31,6 +31,10 @@ interface IFake {
   isDad?: boolean;
   items: IFakeItem[];
   birth?: Date;
+  map?: {
+    text: string;
+    age: number;
+  };
 }
 
 class Fake {
@@ -720,47 +724,30 @@ describe("NoSqlEasy", () => {
       email: "paulohenrique@3tecnos.com.br",
       items: [],
       birth: undefined,
+      map: {
+        text: "Paulo",
+        age: 31,
+      },
     };
 
-    sut.startTransaction();
+    const transaction = async (t: any) => {
+      sut.setTransaction(t);
 
-    await sut.insertWithId<IFake>(dynamicallyCollection, fake);
+      const data = await sut.getById<IFake, FakeResponse>(
+        dynamicallyCollection,
+        "123456",
+        FakeResponse,
+      );
 
-    await sut.remove(dynamicallyCollection, "23021990");
+      await sut.insertWithId<IFake>(dynamicallyCollection, fake);
 
-    const response = sut.commitTransaction();
+      await sut.remove(dynamicallyCollection, "23021990");
+    };
+
+    const response = await sut.executeTransaction(transaction);
+
+    sut.cleanTransaction();
 
     await expect(response).resolves;
-  });
-
-  it("Should be execute the transaction with error - No one transaction was started!", async () => {
-    try {
-      await sut.commitTransaction();
-      expect(true).toBe(false);
-    } catch (ex) {
-      expect(ex).toBe("No one transaction was started!");
-    }
-  });
-
-  it("Should be execute the transaction with error - Already exists one transaction started!", async () => {
-    sut.startTransaction();
-
-    expect(() => sut.startTransaction()).toThrow(
-      "Already exists one transaction started!",
-    );
-
-    // this is necessary to continue other tests without error
-    sut.destroyTransaction();
-  });
-
-  it("Should be execute the transaction with error - Destroy Transaction!", async () => {
-    sut.startTransaction();
-    sut.destroyTransaction();
-
-    expect(() => sut.startTransaction()).not.toThrow(
-      "Already exists one transaction started!",
-    );
-
-    sut.destroyTransaction();
   });
 });
