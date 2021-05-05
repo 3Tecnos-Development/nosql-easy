@@ -323,6 +323,11 @@ describe("NoSqlEasy", () => {
         operator: "range",
         value: [new Date(1940, 10, 9), new Date(2020, 10, 10)],
       },
+      {
+        field: "email",
+        operator: "in",
+        value: ["zacas@3tecnos.com.br", "mussum@3tecnos.com.br"],
+      },
     ];
     const where: Where<IFake>[] = [
       { fieldPath: "age", operator: ">", value: 42 },
