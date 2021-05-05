@@ -1,7 +1,8 @@
 /* eslint-disable no-param-reassign */
 import {
   ComparisonsArray,
-  EqualOperatorOp,
+  EqualsOperator,
+  NotEqualsOperator,
   UniqueClausesArray,
   Where,
   WhereGroup,
@@ -17,12 +18,12 @@ export const groupConditionsByCompoundQueries = <T>(
     whereCollection,
     UniqueClausesArray,
   );
-  const whereWithComparisons = filterConditionsByOperators(
-    whereCollection,
-    ComparisonsArray,
-  );
+  const whereWithComparisons = filterConditionsByOperators(whereCollection, [
+    ...ComparisonsArray,
+    NotEqualsOperator,
+  ]);
   const remainingWhere = filterConditionsByOperators(whereCollection, [
-    EqualOperatorOp,
+    EqualsOperator,
   ]);
 
   // add groups where with comparisons
