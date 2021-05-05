@@ -1,11 +1,6 @@
-export declare type FilterOperator =
-  | "<"
-  | "<="
-  | "=="
-  | ">="
-  | ">"
-  | "!="
-  | "range";
+import { WhereFilterOp } from "./Where";
+
+export declare type FilterOperator = WhereFilterOp | "range";
 
 interface IFilter<TFilter> {
   field: keyof TFilter;
