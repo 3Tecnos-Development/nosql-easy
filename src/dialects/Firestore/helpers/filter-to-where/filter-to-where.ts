@@ -19,8 +19,9 @@ export const filterToWhere = <T>(filters: Filter<T>[]): Where<T>[] => {
       whereCollection.push(from, to);
     } else {
       whereCollection.push({
-        ...filter,
         fieldPath: filter.field,
+        operator: filter.operator,
+        value: filter.value,
       } as Where<T>);
     }
 
