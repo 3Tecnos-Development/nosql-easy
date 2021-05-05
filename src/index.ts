@@ -12,6 +12,8 @@ import {
   Where,
   WhereFilterOp,
   WhereNested,
+  Filter,
+  FilterOperator,
 } from "./types";
 
 export {
@@ -23,6 +25,8 @@ export {
   Where,
   WhereNested,
   FieldNested,
+  Filter,
+  FilterOperator,
 };
 
 export { NoSqlEasyConfig };
