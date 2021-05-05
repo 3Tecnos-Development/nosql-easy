@@ -9,7 +9,7 @@ import { NoSqlEasyConfig } from "../../Config";
 import { DialectType } from "../../types/DialectType";
 import { IFirestoreCredential, NoSqlEasy } from "../../index";
 import { FakeFilter, FakeItemResponse, FakeResponse } from "../entities";
-import { FieldNested, Options, OrderBy, Where } from "../../types";
+import { Options, OrderBy, Where } from "../../types";
 import { DataTransformAdapter } from "../../adapters/dataTransformer";
 
 dotenv.config();
@@ -94,6 +94,7 @@ describe("NoSqlEasy", () => {
 
   const dynamicallyCollection = `fakes-${partOfPrivateKey}`;
 
+  // eslint-disable-next-line no-console
   console.info("collection name -> ", dynamicallyCollection);
 
   it("Testando o método insert", async () => {
@@ -733,7 +734,7 @@ describe("NoSqlEasy", () => {
     const transaction = async (t: any) => {
       sut.setTransaction(t);
 
-      const data = await sut.getById<IFake, FakeResponse>(
+      await sut.getById<IFake, FakeResponse>(
         dynamicallyCollection,
         "123456",
         FakeResponse,
