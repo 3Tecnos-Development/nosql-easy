@@ -96,7 +96,7 @@ export interface IRepository {
 
   executeTransaction<T>(transaction: (t: any) => Promise<T>): Promise<T>;
 
-  cleanTransaction(): void;
+  clearTransaction(): void;
 
   setTransaction(transaction: Transaction["transaction"]): void;
 }

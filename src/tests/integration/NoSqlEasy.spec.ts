@@ -404,7 +404,7 @@ describe("NoSqlEasy", () => {
       dynamicallyCollection,
       options,
     );
-    const responseIds = response.map((r) => r.id!);
+    const responseIds = response.map((r: any) => r.id!);
     const toCompare = [zacarias.id!];
     expect(responseIds).toEqual(toCompare);
   });
@@ -837,7 +837,7 @@ describe("NoSqlEasy", () => {
 
     const response = await sut.executeTransaction(transaction);
 
-    sut.cleanTransaction();
+    sut.clearTransaction();
 
     await expect(response).resolves;
   });

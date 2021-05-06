@@ -248,8 +248,8 @@ export class NoSqlEasy implements IRepository {
     return this.repository.executeTransaction(transaction);
   }
 
-  cleanTransaction(): void {
-    this.repository.cleanTransaction();
+  clearTransaction(): void {
+    this.repository.clearTransaction();
   }
 
   setTransaction(transaction: Transaction["transaction"]): void {
