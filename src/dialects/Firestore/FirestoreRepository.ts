@@ -231,8 +231,6 @@ export class FirestoreRepository implements IRepository {
           // Limit and Offset to Compound Queries
           const endIndex = limit && offset ? limit + offset : limit;
 
-          console.log("result -> ", result);
-
           return result.slice(offset, endIndex);
         }
         query = queries?.[0];
