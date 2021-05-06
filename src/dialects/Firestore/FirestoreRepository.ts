@@ -204,7 +204,20 @@ export class FirestoreRepository implements IRepository {
 
         const hasCompoundQueries = queries.length > 1;
         if (hasCompoundQueries) {
-          const promises = queries.map((q) => q.get());
+          const promises = queries.reduce(
+            (
+              result: Promise<firestore.QuerySnapshot<DocumentData>>[],
+              q: firestore.Query<DocumentData>,
+            ) => {
+              const queryPromise = this.transaction
+                ? this.transaction.get(q)
+                : q.get();
+              result.push(queryPromise);
+              return result;
+            },
+            [],
+          );
+
           const snapShots = await Promise.all(promises);
           const result = await this.transform(
             intersectModels<R>(snapShots),
@@ -217,6 +230,9 @@ export class FirestoreRepository implements IRepository {
 
           // Limit and Offset to Compound Queries
           const endIndex = limit && offset ? limit + offset : limit;
+
+          console.log("result -> ", result);
+
           return result.slice(offset, endIndex);
         }
         query = queries?.[0];
@@ -536,16 +552,16 @@ export class FirestoreRepository implements IRepository {
 
   executeTransaction<T>(
     // eslint-disable-next-line no-unused-vars
-    transaction: (t: any) => Promise<T>,
+    transactionFunction: (t: any) => Promise<T>,
   ): Promise<T> {
     if (this.transaction) {
       throw new Error("Already exists one transaction started!");
     }
 
-    return this.firestore.runTransaction<T>(transaction);
+    return this.firestore.runTransaction<T>(transactionFunction);
   }
 
-  cleanTransaction(): void {
+  clearTransaction(): void {
     this.transaction = undefined;
   }
 
