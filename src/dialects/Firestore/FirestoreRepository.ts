@@ -8,7 +8,14 @@ import firebase, { firestore } from "firebase-admin";
 import { DocumentData, UpdateData } from "@firebase/firestore-types";
 
 import { IDataTransformPort, IRepository } from "../../interfaces";
-import { FieldNested, Options, Transaction, Where } from "../../types";
+import {
+  FieldNested,
+  Options,
+  OrderBy,
+  Transaction,
+  Where,
+  WhereNested,
+} from "../../types";
 import {
   emptyToUndefined,
   orderArrayBy,
@@ -172,84 +179,104 @@ export class FirestoreRepository implements IRepository {
     return document;
   }
 
+  // get collection without offset and limit
+  private async getPartialCollection<T, R = T>(
+    collection: string,
+    whereCollection?: (Where<T> | WhereNested<T, any>)[],
+    orderByCollection?: OrderBy<T>[],
+    ResponseClass?: new () => R,
+  ): Promise<R[] | firestore.Query<DocumentData>> {
+    const collectionRef = this.firestore.collection(collection);
+    let query = collectionRef as firestore.Query;
+
+    const hasConditionals = whereCollection && whereCollection?.length > 0;
+
+    // Where
+    if (hasConditionals) {
+      const queries = getConditionalQueries(collectionRef, whereCollection!);
+
+      const hasCompoundQueries = queries.length > 1;
+      if (hasCompoundQueries) {
+        const promises = queries!.reduce(
+          (
+            result: Promise<firestore.QuerySnapshot<DocumentData>>[],
+            q: firestore.Query<DocumentData>,
+          ) => {
+            const queryPromise = this.transaction
+              ? this.transaction.get(q)
+              : q.get();
+            result.push(queryPromise);
+            return result;
+          },
+          [],
+        );
+
+        const snapShots = await Promise.all(promises);
+        const result = await this.transform(
+          intersectModels<R>(snapShots),
+          ResponseClass,
+        );
+
+        // Order By to Compound Queries
+        !!orderByCollection &&
+          orderArrayBy<R>(result, orderByCollection as any[]);
+
+        return result;
+      }
+      query = queries.length > 0 ? queries[0] : query;
+    }
+
+    // Order By
+    query = orderByCollection
+      ? addOrderByTo<T>(query, orderByCollection, whereCollection)
+      : query;
+
+    return query;
+  }
+
   async getCollection<T, R = T>(
     collection: string,
     options?: Options<T>,
     ResponseClass?: new () => R,
   ): Promise<R[]> {
-    const collectionRef = this.firestore.collection(collection);
-    let query = collectionRef as firestore.Query;
+    const {
+      whereCollection,
+      filterCollection,
+      orderByCollection,
+      offset,
+      limit,
+    } = options || {};
 
-    if (options) {
-      const {
-        whereCollection,
-        filterCollection,
-        orderByCollection,
-        limit,
-        offset,
-      } = options;
+    const allWhereCollection = [
+      ...(whereCollection ?? []),
+      ...filterToWhere(filterCollection ?? []),
+    ];
 
-      const allWhereCollection = [
-        ...(whereCollection ?? []),
-        ...filterToWhere(filterCollection ?? []),
-      ];
+    const result = await this.getPartialCollection(
+      collection,
+      allWhereCollection,
+      orderByCollection,
+      ResponseClass,
+    );
 
-      const hasConditionals = allWhereCollection?.length > 0;
-      if (hasConditionals) {
-        // Where
-        const queries = getConditionalQueries(
-          collectionRef,
-          allWhereCollection,
-        );
-
-        const hasCompoundQueries = queries.length > 1;
-        if (hasCompoundQueries) {
-          const promises = queries.reduce(
-            (
-              result: Promise<firestore.QuerySnapshot<DocumentData>>[],
-              q: firestore.Query<DocumentData>,
-            ) => {
-              const queryPromise = this.transaction
-                ? this.transaction.get(q)
-                : q.get();
-              result.push(queryPromise);
-              return result;
-            },
-            [],
-          );
-
-          const snapShots = await Promise.all(promises);
-          const result = await this.transform(
-            intersectModels<R>(snapShots),
-            ResponseClass,
-          );
-
-          // Order By to Compound Queries
-          !!orderByCollection &&
-            orderArrayBy<R>(result, orderByCollection as any);
-
-          // Limit and Offset to Compound Queries
-          const endIndex = limit && offset ? limit + offset : limit;
-
-          return result.slice(offset, endIndex);
-        }
-        query = queries?.[0];
-      }
-      // Order By
-      query = orderByCollection
-        ? addOrderByTo<T>(query, orderByCollection, allWhereCollection)
-        : query;
+    // single query
+    if (result instanceof firestore.Query) {
+      let query = result;
 
       // Limit and Offset
       query = limit ? query.limit(limit) : query;
       query = offset ? query.offset(offset) : query;
+      const snapShot = this.transaction
+        ? await this.transaction.get(query)
+        : await query.get();
+
+      return this.transform(snapShot, ResponseClass);
     }
 
-    const snapShot = this.transaction
-      ? await this.transaction.get(query)
-      : await query.get();
+    // Limit and Offset to Compound Queries
+    const endIndex = limit && offset ? limit + offset : limit;
 
-    return this.transform(snapShot, ResponseClass);
+    return result.slice(options?.offset, endIndex);
   }
 
   async getById<T, R = T>(
@@ -445,26 +472,30 @@ export class FirestoreRepository implements IRepository {
     collection: string,
     options?: Options<T>,
   ): Promise<number> {
-    let query = this.firestore.collection(collection) as firestore.Query;
+    const { whereCollection, filterCollection, orderByCollection } =
+      options || {};
 
-    if (options?.whereCollection) {
-      options.whereCollection.forEach((where: any) => {
-        const fieldPath = where.fieldPath
-          ? where.fieldPath
-          : `${where.fieldParent}.${where.fieldNested}`;
-        query = query.where(
-          fieldPath,
-          where.operator.toString() as FirebaseFirestore.WhereFilterOp,
-          where.value,
-        );
-      });
+    const allWhereCollection = [
+      ...(whereCollection ?? []),
+      ...filterToWhere(filterCollection ?? []),
+    ];
+
+    const result = await this.getPartialCollection(
+      collection,
+      allWhereCollection,
+      orderByCollection,
+    );
+
+    // single query
+    if (result instanceof firestore.Query) {
+      const query = result;
+      const snapShot = this.transaction
+        ? await this.transaction.get(query)
+        : await query.get();
+
+      return snapShot.size;
     }
-
-    const snapShot = this.transaction
-      ? await this.transaction.get(query)
-      : await query.get();
-
-    return snapShot.size;
+    return result?.length;
   }
 
   async getPaginatedCollection<T, F, R = T>(
