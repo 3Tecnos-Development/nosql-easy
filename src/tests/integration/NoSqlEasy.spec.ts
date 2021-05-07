@@ -409,6 +409,42 @@ describe("NoSqlEasy", () => {
     expect(responseIds).toEqual(toCompare);
   });
 
+  it("Testing the getSizeCollection method.", async () => {
+    const filter: Filter<IFake>[] = [
+      { field: "age", operator: ">=", value: 33 },
+      { field: "age", operator: "<=", value: 60 },
+      {
+        field: "birth",
+        operator: "range",
+        value: [new Date(1940, 10, 9), new Date(2020, 10, 10)],
+      },
+      {
+        field: "email",
+        operator: "in",
+        value: ["zacas@3tecnos.com.br", "mussum@3tecnos.com.br"],
+      },
+    ];
+    const where: Where<IFake>[] = [
+      { fieldPath: "age", operator: ">", value: 42 },
+    ];
+    const orderBy: OrderBy<IFake>[] = [{ fieldPath: "age", direction: "desc" }];
+    const options: Options<IFake> = {
+      filterCollection: filter,
+      whereCollection: where,
+      orderByCollection: orderBy,
+    };
+    const sizeCollection = await sut.getSizeCollection(
+      dynamicallyCollection,
+      options,
+    );
+    const collection = await sut.getCollection<IFake>(
+      dynamicallyCollection,
+      options,
+    );
+
+    expect(collection?.length).toEqual(sizeCollection);
+  });
+
   it("Testing the getCollection method by rejecting the query when the ordering is not in agreement.", async () => {
     const where: Where<IFake>[] = [
       { fieldPath: "name", operator: "==", value: "Mussum" },
